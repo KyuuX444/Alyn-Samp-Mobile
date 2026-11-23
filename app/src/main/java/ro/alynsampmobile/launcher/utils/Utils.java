@@ -312,47 +312,53 @@ public class Utils {
                 parentDir.mkdirs();
             }
 
-            if (file.exists()) {
-                file.delete();
-            }
-
             SharedPreferences settings_prefs = ctx.getSharedPreferences("samp_settings", Context.MODE_PRIVATE);
             SharedPreferences server_prefs = ctx.getSharedPreferences("samp_server", Context.MODE_PRIVATE);
 
             JSONObject jSONObject = new JSONObject();
-            jSONObject.put("client", new JSONObject());
+            JSONObject clientObj = new JSONObject();
+            JSONObject serverObj = new JSONObject();
 
-            jSONObject.getJSONObject("client").put("server", new JSONObject());
-            jSONObject.getJSONObject("client").getJSONObject("server").put("host", server_prefs.getString("host", "127.0.0.1"));
-            jSONObject.getJSONObject("client").getJSONObject("server").put("port", Integer.valueOf(server_prefs.getString("port", "7777")));
-            jSONObject.getJSONObject("client").getJSONObject("server").put("password", server_prefs.getString("password", ""));
+            serverObj.put("host", server_prefs.getString("host", "127.0.0.1"));
+            int port = 7777;
+            try {
+                Object p = server_prefs.getAll().get("port");
+                if (p instanceof Integer) {
+                    port = (Integer) p;
+                } else if (p != null) {
+                    port = Integer.parseInt(p.toString());
+                }
+            } catch (Exception ignored) {}
+            serverObj.put("port", port);
+            serverObj.put("password", server_prefs.getString("password", ""));
+            clientObj.put("server", serverObj);
 
-            jSONObject.getJSONObject("client").put("settings", new JSONObject());
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("nick_name", settings_prefs.getString("nick_name", "samp_player"));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("samp_version", settings_prefs.getInt("samp_version", 0));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("game_version", settings_prefs.getInt("game_version", 0));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("new_interface", settings_prefs.getBoolean("new_interface", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("system_keyboard", settings_prefs.getBoolean("system_keyboard", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("timestamp", settings_prefs.getBoolean("timestamp", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("fullscreen", settings_prefs.getBoolean("fullscreen", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("fast_connect", settings_prefs.getBoolean("fast_connect", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("voice_chat", settings_prefs.getBoolean("voice_chat", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("display_fps", settings_prefs.getBoolean("display_fps", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("cleo_scripts", settings_prefs.getBoolean("cleo_scripts", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("aml_scripts", settings_prefs.getBoolean("aml_scripts", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("monet_scripts", settings_prefs.getBoolean("monet_scripts", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("modloader", settings_prefs.getBoolean("modloader", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("modify_files", settings_prefs.getBoolean("modify_files", false));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("fps_limit", settings_prefs.getInt("fps_limit", 60));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("chat_strings", settings_prefs.getInt("chat_strings", 5));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("font_size", settings_prefs.getFloat("font_size", 28.0f));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("chat_posx", settings_prefs.getInt("chat_posx", 100));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("chat_posy", settings_prefs.getInt("chat_posy", 10));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("chat_sizex", settings_prefs.getInt("chat_sizex", 400));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("chat_sizey", settings_prefs.getInt("chat_sizey", 150));
-            jSONObject.getJSONObject("client").getJSONObject("settings").put("font_size", settings_prefs.getFloat("font_size", 26.0f));
+            JSONObject settingsObj = new JSONObject();
+            settingsObj.put("nick_name", settings_prefs.getString("nick_name", "samp_player"));
+            settingsObj.put("samp_version", settings_prefs.getInt("samp_version", 0));
+            settingsObj.put("game_version", settings_prefs.getInt("game_version", 0));
+            settingsObj.put("new_interface", settings_prefs.getBoolean("new_interface", false));
+            settingsObj.put("system_keyboard", settings_prefs.getBoolean("system_keyboard", false));
+            settingsObj.put("timestamp", settings_prefs.getBoolean("timestamp", false));
+            settingsObj.put("fullscreen", settings_prefs.getBoolean("fullscreen", false));
+            settingsObj.put("fast_connect", settings_prefs.getBoolean("fast_connect", false));
+            settingsObj.put("voice_chat", settings_prefs.getBoolean("voice_chat", false));
+            settingsObj.put("display_fps", settings_prefs.getBoolean("display_fps", false));
+            settingsObj.put("cleo_scripts", settings_prefs.getBoolean("cleo_scripts", false));
+            settingsObj.put("aml_scripts", settings_prefs.getBoolean("aml_scripts", false));
+            settingsObj.put("monet_scripts", settings_prefs.getBoolean("monet_scripts", false));
+            settingsObj.put("modloader", settings_prefs.getBoolean("modloader", false));
+            settingsObj.put("modify_files", settings_prefs.getBoolean("modify_files", false));
+            settingsObj.put("fps_limit", settings_prefs.getInt("fps_limit", 60));
+            settingsObj.put("chat_strings", settings_prefs.getInt("chat_strings", 5));
+            settingsObj.put("font_size", 26.0);
+            settingsObj.put("chat_posx", settings_prefs.getInt("chat_posx", 100));
+            settingsObj.put("chat_posy", settings_prefs.getInt("chat_posy", 10));
+            settingsObj.put("chat_sizex", settings_prefs.getInt("chat_sizex", 400));
+            settingsObj.put("chat_sizey", settings_prefs.getInt("chat_sizey", 150));
+            clientObj.put("settings", settingsObj);
 
-            file.createNewFile();
+            jSONObject.put("client", clientObj);
 
             writeJSONToFile(file, jSONObject);
         } catch (Exception e) {

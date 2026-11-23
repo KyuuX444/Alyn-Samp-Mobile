@@ -44,7 +44,19 @@ void Settings::initialize()
 
 	FILE* settings_json_file = fopen(settings_json_path, "rb");
 	if (settings_json_file == nullptr) {
-		spdlog::error("Failed to initialize settings. (settings file null)");
+		spdlog::warn("settings.json not found, creating default settings.json at {}", settings_json_path);
+		settings_json_file = fopen(settings_json_path, "wb");
+		if (settings_json_file != nullptr) {
+			const char* default_json = "{\"client\":{\"server\":{\"host\":\"127.0.0.1\",\"port\":7777,\"password\":\"\"},\"settings\":{\"nick_name\":\"samp_player\",\"samp_version\":0,\"game_version\":0,\"new_interface\":false,\"system_keyboard\":false,\"timestamp\":false,\"fullscreen\":false,\"fast_connect\":false,\"voice_chat\":false,\"display_fps\":false,\"cleo_scripts\":false,\"aml_scripts\":false,\"monet_scripts\":false,\"modloader\":false,\"modify_files\":false,\"fps_limit\":60,\"chat_strings\":5,\"font_size\":26.0,\"chat_posx\":100,\"chat_posy\":10,\"chat_sizex\":400,\"chat_sizey\":150}}}";
+			fwrite(default_json, 1, strlen(default_json), settings_json_file);
+			fclose(settings_json_file);
+			settings_json_file = fopen(settings_json_path, "rb");
+		}
+	}
+
+	if (settings_json_file == nullptr) {
+		spdlog::warn("Unable to create/open settings.json, proceeding with default settings");
+		m_initialized = true;
 		return;
 	}
 
@@ -56,7 +68,8 @@ void Settings::initialize()
 	fclose(settings_json_file);
 
 	if (settings_json.HasParseError() || !settings_json.IsObject() || !settings_json.HasMember("client")) {
-		spdlog::error("Failed to parse settings.json. (parse error or invalid structure)");
+		spdlog::error("Failed to parse settings.json. (parse error or invalid structure), using defaults");
+		m_initialized = true;
 		return;
 	}
 
@@ -110,8 +123,6 @@ void Settings::initialize()
 	spdlog::info("font_size {}", m_fontsize);
 	spdlog::info("chat_pos {} {}", m_chatpos.x, m_chatpos.y);
 	spdlog::info("chat_size {} {}", m_chatsize.x, m_chatsize.y);
-
-	fclose(settings_json_file);
 
 	m_initialized = true;
 }

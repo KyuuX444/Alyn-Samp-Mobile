@@ -89,7 +89,10 @@ DECL_HOOK(void, DisplayScreen)
 		pUI->splashscreen()->setProgressBarValue(fPercentLoaded / 100.0f);
 		pUI->render();
 
+		if (sa::Scene && sa::Scene->m_pRwCamera)
+	{
 		RwCameraEndUpdate(sa::Scene->m_pRwCamera);
+	}
 		RwCameraShowRaster(sa::Scene->m_pRwCamera, nullptr, 0);
 	}*/
 }
@@ -438,7 +441,10 @@ DECL_HOOK(uint32_t, Idle, void *param, bool firstFrame)
 		pUI->render();
 	}
 
-	RwCameraEndUpdate(sa::Scene->m_pRwCamera);
+	if (sa::Scene && sa::Scene->m_pRwCamera)
+	{
+		RwCameraEndUpdate(sa::Scene->m_pRwCamera);
+	}
 
 	return result;
 }

@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import ro.alynsampmobile.launcher.ui.dialog.RateUsDialog;
+import ro.alynsampmobile.launcher.ui.fragment.FavoriteServersFragment;
 import ro.alynsampmobile.launcher.ui.fragment.InformationPageFragment;
 import ro.alynsampmobile.launcher.ui.fragment.ServersPageFragment;
 import ro.alynsampmobile.launcher.ui.fragment.SettingsPageFragment;
@@ -90,11 +91,27 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
                     .setPositiveButton("Ok", null).setCancelable(false).show();
         }
 
-        // set home fragment by default
+        // set play fragment (favorite servers) by default
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
-                .replace(R.id.fragmentContainer, InformationPageFragment.class, null)
+                .replace(R.id.fragmentContainer, FavoriteServersFragment.class, null)
                 .commit();
+
+        selectedTab = 2;
+        homeTxt.setVisibility(View.GONE);
+        playTxt.setVisibility(View.VISIBLE);
+        settingsTxt.setVisibility(View.GONE);
+        supportTxt.setVisibility(View.GONE);
+
+        homeImage.setImageResource(R.drawable.home_icon);
+        playImage.setImageResource(R.drawable.play_selected_icon);
+        settingsImage.setImageResource(R.drawable.settings_icon);
+        supportImage.setImageResource(R.drawable.support_icon);
+
+        homeLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
+        playLayout.setBackgroundResource(R.drawable.round_back_navbg);
+        settingsLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
+        supportLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
 
         // show rating dialog
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -147,10 +164,10 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
         playLayout.setOnClickListener(v -> {
             // check if play tab is already selected or not.
             if (selectedTab != 2) {
-                // set play fragment
+                // set play fragment directly to favorite servers
                 getSupportFragmentManager().beginTransaction()
                         .setReorderingAllowed(true)
-                        .replace(R.id.fragmentContainer, ServersPageFragment.class, null)
+                        .replace(R.id.fragmentContainer, FavoriteServersFragment.class, null)
                         .commit();
 
                 // unselect other tabs expect play tab

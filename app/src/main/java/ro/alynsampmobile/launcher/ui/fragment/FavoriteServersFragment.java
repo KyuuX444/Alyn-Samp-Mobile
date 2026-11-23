@@ -66,6 +66,7 @@ public class FavoriteServersFragment extends Fragment {
         swipeRefreshLayout.setOnRefreshListener(this::refreshServers);
 
         View btnBack = view.findViewById(R.id.btnBack);
+        btnBack.setVisibility(View.GONE);
         btnBack.setOnClickListener(v -> {
             getParentFragmentManager().popBackStack();
         });

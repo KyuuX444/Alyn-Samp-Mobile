@@ -57,9 +57,11 @@ void init_logger(const std::string& gameDir)
 		// Set log level and pattern
 		logger->set_level(spdlog::level::info);
 		logger->set_pattern("[%d-%m-%Y %H:%M:%S] [%^%l%$] %v");
+		logger->flush_on(spdlog::level::info);
 
 		// Set as default logger
 		spdlog::set_default_logger(logger);
+		spdlog::flush_every(std::chrono::seconds(1));
 	}
 	catch (const spdlog::spdlog_ex& ex) {
 		__android_log_print(ANDROID_LOG_ERROR, "Alyn_SAMPMOBILE", "Log initialization failed: %s", ex.what());
@@ -69,10 +71,11 @@ void init_logger(const std::string& gameDir)
 void* startGame(void*)
 {
 	spdlog::info("startGame thread started, waiting for gGameState >= 7...");
+	uint32_t* pGameState = g_saSym->GetSymbol<uint32_t*>("gGameState");
 	uint32_t lastLogged = 999;
 	int ticks = 0;
 	while (true) {
-		uint32_t state = *g_saSym->GetSymbol<uint32_t*>("gGameState");
+		uint32_t state = pGameState ? *pGameState : 0;
 		if (state != lastLogged) {
 			spdlog::info("gGameState transitioned: {} -> {}", lastLogged, state);
 			lastLogged = state;
@@ -88,6 +91,7 @@ void* startGame(void*)
 
 	spdlog::info("gGameState is {} (>= 7), calling StartGame()...", lastLogged);
 	pGame->StartGame();
+	spdlog::info("pGame->StartGame() returned");
 
 	pthread_exit(nullptr);
 }
@@ -195,11 +199,15 @@ void Client::process()
 		pGame->Initialize();
 		pAudioStream->Initialize();
 
-		pUI->splashscreen()->setVisible(false);
-		pUI->chat()->setVisible(true);
-		pUI->buttonpanel()->setVisible(true);
+		if (pUI) {
+			pUI->splashscreen()->setVisible(false);
+			pUI->chat()->setVisible(true);
+			pUI->buttonpanel()->setVisible(true);
+		}
 
-		g_java->showLoadingScreen(false);
+		if (g_java) {
+			g_java->showLoadingScreen(false);
+		}
 
 		ClientCmds::initialize();
 
