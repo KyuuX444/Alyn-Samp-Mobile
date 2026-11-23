@@ -68,10 +68,25 @@ void init_logger(const std::string& gameDir)
 
 void* startGame(void*)
 {
-	while (*g_saSym->GetSymbol<uint32_t*>("gGameState") != 7) {
+	spdlog::info("startGame thread started, waiting for gGameState >= 7...");
+	uint32_t lastLogged = 999;
+	int ticks = 0;
+	while (true) {
+		uint32_t state = *g_saSym->GetSymbol<uint32_t*>("gGameState");
+		if (state != lastLogged) {
+			spdlog::info("gGameState transitioned: {} -> {}", lastLogged, state);
+			lastLogged = state;
+		}
+		if (state >= 7) {
+			break;
+		}
+		if (++ticks % 2000 == 0) { // every ~1s (2000 * 500us)
+			spdlog::info("Waiting for gGameState >= 7 (current={})...", state);
+		}
 		usleep(500);
 	}
 
+	spdlog::info("gGameState is {} (>= 7), calling StartGame()...", lastLogged);
 	pGame->StartGame();
 
 	pthread_exit(nullptr);

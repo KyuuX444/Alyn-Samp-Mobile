@@ -16,6 +16,7 @@ import java.util.Objects;
 
 import ro.alynsampmobile.game.ui.UI;
 import ro.alynsampmobile.launcher.utils.SignatureChecker;
+import ro.alynsampmobile.launcher.utils.Utils;
 
 @Obfuscate
 public class SAMP extends GTASA {
@@ -120,6 +121,12 @@ public class SAMP extends GTASA {
         } else {
             Log.i("SplashActivity", "Using original client!");
         }
+
+        File sampDir = new File(getExternalFilesDir(null), "SAMP");
+        if (!sampDir.exists()) {
+            sampDir.mkdirs();
+        }
+        Utils.saveSettings(this);
 
         String gameDir = getExternalFilesDir(null).toString().concat("/");
         Log.i(TAG, "Game directory: " + gameDir);

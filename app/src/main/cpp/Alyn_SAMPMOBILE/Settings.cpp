@@ -53,28 +53,45 @@ void Settings::initialize()
 
 	rapidjson::Document settings_json;
 	settings_json.ParseStream<0, rapidjson::UTF8<>, rapidjson::FileReadStream>(fileReadStream);
+	fclose(settings_json_file);
+
+	if (settings_json.HasParseError() || !settings_json.IsObject() || !settings_json.HasMember("client")) {
+		spdlog::error("Failed to parse settings.json. (parse error or invalid structure)");
+		return;
+	}
 
 	// server
-	strcpy(m_host, settings_json["client"]["server"]["host"].GetString());
-	m_port = settings_json["client"]["server"]["port"].GetInt();
-	strcpy(m_pass, settings_json["client"]["server"]["password"].GetString());
+	if (settings_json["client"].HasMember("server")) {
+		const auto& server = settings_json["client"]["server"];
+		if (server.HasMember("host") && server["host"].IsString()) {
+			strcpy(m_host, server["host"].GetString());
+		}
+		if (server.HasMember("port") && server["port"].IsInt()) {
+			m_port = server["port"].GetInt();
+		}
+		if (server.HasMember("password") && server["password"].IsString()) {
+			strcpy(m_pass, server["password"].GetString());
+		}
+	}
 
 	// settings
-	strcpy(m_nick, settings_json["client"]["settings"]["nick_name"].GetString());
-	m_sampversion = settings_json["client"]["settings"]["samp_version"].GetInt();
-	// m_newinterface = settings_json["client"]["settings"]["new_interface"].GetBool();
-	m_systemkeyboard = settings_json["client"]["settings"]["system_keyboard"].GetBool();
-	m_timestamp = settings_json["client"]["settings"]["timestamp"].GetBool();
-	m_fastconnect = settings_json["client"]["settings"]["fast_connect"].GetBool();
-	m_voice = settings_json["client"]["settings"]["voice_chat"].GetBool();
-	m_displayfps = settings_json["client"]["settings"]["display_fps"].GetBool();
-	m_fpslimit = settings_json["client"]["settings"]["fps_limit"].GetInt();
-	m_chatstrings = settings_json["client"]["settings"]["chat_strings"].GetInt();
-	m_fontsize = settings_json["client"]["settings"]["font_size"].GetFloat();
-	m_chatpos.x = settings_json["client"]["settings"]["chat_posx"].GetInt();
-	m_chatpos.y = settings_json["client"]["settings"]["chat_posy"].GetInt();
-	m_chatsize.x = settings_json["client"]["settings"]["chat_sizex"].GetInt();
-	m_chatsize.y = settings_json["client"]["settings"]["chat_sizey"].GetInt();
+	if (settings_json["client"].HasMember("settings")) {
+		const auto& s = settings_json["client"]["settings"];
+		if (s.HasMember("nick_name") && s["nick_name"].IsString()) strcpy(m_nick, s["nick_name"].GetString());
+		if (s.HasMember("samp_version") && s["samp_version"].IsInt()) m_sampversion = s["samp_version"].GetInt();
+		if (s.HasMember("system_keyboard") && s["system_keyboard"].IsBool()) m_systemkeyboard = s["system_keyboard"].GetBool();
+		if (s.HasMember("timestamp") && s["timestamp"].IsBool()) m_timestamp = s["timestamp"].GetBool();
+		if (s.HasMember("fast_connect") && s["fast_connect"].IsBool()) m_fastconnect = s["fast_connect"].GetBool();
+		if (s.HasMember("voice_chat") && s["voice_chat"].IsBool()) m_voice = s["voice_chat"].GetBool();
+		if (s.HasMember("display_fps") && s["display_fps"].IsBool()) m_displayfps = s["display_fps"].GetBool();
+		if (s.HasMember("fps_limit") && s["fps_limit"].IsInt()) m_fpslimit = s["fps_limit"].GetInt();
+		if (s.HasMember("chat_strings") && s["chat_strings"].IsInt()) m_chatstrings = s["chat_strings"].GetInt();
+		if (s.HasMember("font_size") && s["font_size"].IsNumber()) m_fontsize = s["font_size"].GetFloat();
+		if (s.HasMember("chat_posx") && s["chat_posx"].IsInt()) m_chatpos.x = s["chat_posx"].GetInt();
+		if (s.HasMember("chat_posy") && s["chat_posy"].IsInt()) m_chatpos.y = s["chat_posy"].GetInt();
+		if (s.HasMember("chat_sizex") && s["chat_sizex"].IsInt()) m_chatsize.x = s["chat_sizex"].GetInt();
+		if (s.HasMember("chat_sizey") && s["chat_sizey"].IsInt()) m_chatsize.y = s["chat_sizey"].GetInt();
+	}
 
 	spdlog::info("host {}", m_host);
 	spdlog::info("port {}", m_port);

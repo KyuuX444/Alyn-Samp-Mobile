@@ -307,6 +307,10 @@ public class Utils {
 
         try {
             File file = new File(ctx.getExternalFilesDir(null), "SAMP/settings.json");
+            File parentDir = file.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                parentDir.mkdirs();
+            }
 
             if (file.exists()) {
                 file.delete();

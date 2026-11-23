@@ -286,28 +286,40 @@ public class WarMedia extends WarGamepad
     }
 
     public boolean ServiceAppCommand(String str, String str2) {
-        System.out.println("**** ServiceAppCommand " + str + " " + str2);
+        if ("SetKeepScreenOn".equalsIgnoreCase(str)) {
+            ScreenSetWakeLock(true);
+            return true;
+        }
         return false;
     }
 
     public int ServiceAppCommandValue(String str, String str2) {
-        System.out.println("**** ServiceAppCommandValue " + str + " " + str2);
+        if ("GetDownloadState".equalsIgnoreCase(str)) return 4;
+        if ("GetDownloadBytes".equalsIgnoreCase(str)) return 0;
+        if ("GetNetworkState".equalsIgnoreCase(str)) return isNetworkAvailable() ? 1 : 0;
         return 0;
     }
 
     public boolean ServiceAppCommandInt(String cmd, int args) {
-        System.out.println("**** ServiceAppCommandInt " + cmd + " " + args);
+        if ("SetKeepScreenOn".equalsIgnoreCase(cmd)) {
+            ScreenSetWakeLock(args != 0);
+            return true;
+        }
         return false;
     }
 
     public boolean isWiFiAvailable() {
-        System.out.println("**** isWiFiAvailable ");
-        return false;
+        return isNetworkAvailable();
     }
 
     public boolean isNetworkAvailable() {
-        System.out.println("**** isNetworkAvailable ");
-        return false;
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+            android.net.NetworkInfo netInfo = cm != null ? cm.getActiveNetworkInfo() : null;
+            return netInfo != null && netInfo.isConnected();
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     public boolean isTV() {
