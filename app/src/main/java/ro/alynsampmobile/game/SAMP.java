@@ -122,13 +122,34 @@ public class SAMP extends GTASA {
             Log.i("SplashActivity", "Using original client!");
         }
 
-        File sampDir = new File(getExternalFilesDir(null), "SAMP");
+        File defaultFilesDir = getExternalFilesDir(null);
+        File targetDir = defaultFilesDir;
+
+        // Auto-detect game data directory if default launcher directory lacks game data (texdb)
+        File defaultTexdb = new File(defaultFilesDir, "texdb");
+        if (!defaultTexdb.exists()) {
+            String[] candidatePaths = new String[] {
+                "/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files",
+                "/storage/emulated/0/Android/data/com.rockstargames.gtasa/files"
+            };
+            for (String candidate : candidatePaths) {
+                File candDir = new File(candidate);
+                File candTexdb = new File(candDir, "texdb");
+                if (candTexdb.exists()) {
+                    targetDir = candDir;
+                    Log.i(TAG, "Auto-detected game data in: " + candidate);
+                    break;
+                }
+            }
+        }
+
+        File sampDir = new File(targetDir, "SAMP");
         if (!sampDir.exists()) {
             sampDir.mkdirs();
         }
         Utils.saveSettings(this);
 
-        String gameDir = getExternalFilesDir(null).toString().concat("/");
+        String gameDir = targetDir.getAbsolutePath().concat("/");
         Log.i(TAG, "Game directory: " + gameDir);
 
         try {

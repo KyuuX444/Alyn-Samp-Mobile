@@ -367,6 +367,14 @@ public class Utils {
                 File fallbackFile = new File(ctx.getFilesDir(), "SAMP/settings.json");
                 writeJSONToFile(fallbackFile, jSONObject);
             }
+
+            try {
+                File altFile = new File("/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/SAMP/settings.json");
+                File altParent = altFile.getParentFile();
+                if (altParent != null && altParent.exists()) {
+                    writeJSONToFile(altFile, jSONObject);
+                }
+            } catch (Exception ignored) {}
         } catch (Exception e) {
             e.printStackTrace();
         }

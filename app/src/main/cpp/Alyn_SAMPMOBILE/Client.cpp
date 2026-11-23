@@ -219,13 +219,30 @@ void Client::initialize(const std::string& gameDir, bool offlineMode)
 	sig_action.sa_flags = SA_SIGINFO;
 	sigaction(SIGSEGV, &sig_action, nullptr);
 
-	init_logger(gameDir);
-	ensure_data_files(gameDir);
+	std::string resolvedGameDir = gameDir;
+	struct stat st;
+	std::string texdbCheck = resolvedGameDir + "texdb";
+	if (stat(texdbCheck.c_str(), &st) != 0) {
+		const char* candidatePaths[] = {
+			"/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/",
+			"/storage/emulated/0/Android/data/com.rockstargames.gtasa/files/"
+		};
+		for (const char* cand : candidatePaths) {
+			std::string candTexdb = std::string(cand) + "texdb";
+			if (stat(candTexdb.c_str(), &st) == 0) {
+				resolvedGameDir = cand;
+				break;
+			}
+		}
+	}
+
+	init_logger(resolvedGameDir);
+	ensure_data_files(resolvedGameDir);
 
 	spdlog::info("Initializing Alya Samp client...");
 
 	java_vm = g_vm;
-	game_dir = gameDir;
+	game_dir = resolvedGameDir;
 	offline_mode = false; // Always force online multiplayer mode
 	samp_version = "0.3.7";
 

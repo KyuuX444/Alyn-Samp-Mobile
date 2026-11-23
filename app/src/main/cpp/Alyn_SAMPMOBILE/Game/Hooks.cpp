@@ -528,6 +528,30 @@ DECL_HOOK(int, OS_FileOpen, int a1, uintptr_t handle, char *name, int a2)
 	}
 
 ret:
+	if (name && name[0] != '/') {
+		char norm[0xff];
+		strncpy(norm, name, sizeof(norm) - 1);
+		norm[sizeof(norm) - 1] = '\0';
+		for (char* p = norm; *p; ++p) {
+			if (*p == '\\') *p = '/';
+		}
+		std::string mainPath = std::string(Client::gameDir()) + norm;
+		struct stat st;
+		if (stat(mainPath.c_str(), &st) != 0) {
+			static const char* altDirs[] = {
+				"/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/",
+				"/storage/emulated/0/Android/data/com.rockstargames.gtasa/files/"
+			};
+			for (const char* alt : altDirs) {
+				std::string altPath = std::string(alt) + norm;
+				if (stat(altPath.c_str(), &st) == 0) {
+					snprintf(path, sizeof(path), "%s", altPath.c_str());
+					name = path;
+					break;
+				}
+			}
+		}
+	}
 	return OS_FileOpen(a1, handle, name, a2);
 }
 
@@ -1125,6 +1149,49 @@ DECL_HOOK(int, TextureDatabaseRuntime_GetEntry, uintptr_t _this, const char *a2,
 	return TextureDatabaseRuntime_GetEntry(_this, a2, a3);
 }
 
+DECL_HOOK(void, MobileMenu_InitForTitle, uintptr_t _this)
+{
+	spdlog::info("MobileMenu::InitForTitle called - safely bypassing single-player title menu");
+}
+
+DECL_HOOK(void, MobileMenu_Load, uintptr_t _this)
+{
+	spdlog::info("MobileMenu::Load called - safely bypassing singleplayer menu textures");
+}
+
+DECL_HOOK(void*, TextureDatabaseRuntime_GetTexture, const char* name)
+{
+	if (!name) return nullptr;
+
+	auto pRegistered = g_saSym->GetSymbol<uintptr_t*>("_ZN22TextureDatabaseRuntime10registeredE");
+	if (!pRegistered || !*pRegistered) {
+		spdlog::warn("TextureDatabaseRuntime::GetTexture(\"{}\"): registered DB is NULL, preventing crash", name);
+		return nullptr;
+	}
+
+	uintptr_t curParent = *pRegistered;
+	int numSubDatabases = *reinterpret_cast<int*>(curParent + 4);
+	if (numSubDatabases <= 0) {
+		spdlog::warn("TextureDatabaseRuntime::GetTexture(\"{}\"): numSubDatabases is <= 0, returning nullptr", name);
+		return nullptr;
+	}
+
+	uintptr_t* subDatabases = *reinterpret_cast<uintptr_t**>(curParent + 8);
+	if (!subDatabases) {
+		spdlog::warn("TextureDatabaseRuntime::GetTexture(\"{}\"): subDatabases array is NULL, returning nullptr", name);
+		return nullptr;
+	}
+
+	for (int i = 0; i < numSubDatabases; i++) {
+		if (!subDatabases[i]) {
+			spdlog::warn("TextureDatabaseRuntime::GetTexture(\"{}\"): subDatabase[{}] is NULL, returning nullptr", name, i);
+			return nullptr;
+		}
+	}
+
+	return TextureDatabaseRuntime_GetTexture(name);
+}
+
 DECL_HOOK(void, CGame_Process)
 {
 	CGame_Process();
@@ -1405,6 +1472,9 @@ void Hooks::install()
 	HOOK("_Z13RLEDecompressPhjPKhjj", RLEDecompress);
 	HOOK("_Z23RwResourcesFreeResEntryP10RwResEntry", RwResourcesFreeResEntry);
 	HOOK("_ZN22TextureDatabaseRuntime8GetEntryEPKcRb", TextureDatabaseRuntime_GetEntry);
+	HOOK("_ZN22TextureDatabaseRuntime10GetTextureEPKc", TextureDatabaseRuntime_GetTexture);
+	HOOK("_ZN10MobileMenu12InitForTitleEv", MobileMenu_InitForTitle);
+	HOOK("_ZN10MobileMenu4LoadEv", MobileMenu_Load);
 	HOOK("_ZN10CPlayerPed29GetPlayerInfoForThisPlayerPedEv", GetPlayerInfoForThisPlayerPed);
 
 	if (!eglGetProcAddress("glAlphaFuncQCOM"))
