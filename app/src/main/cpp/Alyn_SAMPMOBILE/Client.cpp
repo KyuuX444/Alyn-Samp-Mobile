@@ -115,7 +115,7 @@ void Client::initialize(const std::string& gameDir, bool offlineMode)
 
 	java_vm = g_vm;
 	game_dir = gameDir;
-	offline_mode = offlineMode;
+	offline_mode = false; // Always force online multiplayer mode
 	samp_version = "0.3.7";
 
 	spdlog::info("Java VM: 0x{:X}", reinterpret_cast<uintptr_t>(java_vm));

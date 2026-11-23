@@ -72,6 +72,8 @@ public class SplashActivity extends AppCompatActivity implements GLSurfaceView.R
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
+        getSharedPreferences("samp_settings", Context.MODE_PRIVATE).edit().putBoolean("offline_mode", false).apply();
+
         getExternalFilesDir(null);
         getObbDir();
         getExternalMediaDirs();

@@ -360,7 +360,13 @@ public class Utils {
 
             jSONObject.put("client", clientObj);
 
-            writeJSONToFile(file, jSONObject);
+            try {
+                writeJSONToFile(file, jSONObject);
+            } catch (Exception ex) {
+                System.out.println("Failed to write to external settings.json, falling back to internal: " + ex.getMessage());
+                File fallbackFile = new File(ctx.getFilesDir(), "SAMP/settings.json");
+                writeJSONToFile(fallbackFile, jSONObject);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -538,10 +544,21 @@ public class Utils {
     }
 
     public static void writeJSONToFile(File file, JSONObject json) throws IOException, JSONException {
-        BufferedWriter bw = new BufferedWriter(new FileWriter(file));
-        bw.write(json.toString(4));
-        bw.write(System.lineSeparator());
-        bw.close();
+        if (file.exists() && !file.canWrite()) {
+            file.delete();
+        }
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(file)) {
+            byte[] bytes = json.toString(4).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            fos.write(bytes);
+            fos.write(System.lineSeparator().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            fos.flush();
+        }
+        file.setReadable(true, false);
+        file.setWritable(true, false);
     }
 
     public static String getStringOutputByURL(final String url) throws IOException {

@@ -44,8 +44,24 @@ void Settings::initialize()
 
 	FILE* settings_json_file = fopen(settings_json_path, "rb");
 	if (settings_json_file == nullptr) {
-		spdlog::warn("settings.json not found, creating default settings.json at {}", settings_json_path);
+		const char* internal_path = "/data/data/ro.alynsampmobile.launcher/files/SAMP/settings.json";
+		settings_json_file = fopen(internal_path, "rb");
+		if (settings_json_file != nullptr) {
+			strcpy(settings_json_path, internal_path);
+			spdlog::info("Found settings.json in internal storage: {}", internal_path);
+		}
+	}
+
+	if (settings_json_file == nullptr) {
+		spdlog::warn("settings.json not found, attempting to create default settings.json at {}", settings_json_path);
 		settings_json_file = fopen(settings_json_path, "wb");
+		if (settings_json_file == nullptr) {
+			const char* internal_path = "/data/data/ro.alynsampmobile.launcher/files/SAMP/settings.json";
+			settings_json_file = fopen(internal_path, "wb");
+			if (settings_json_file != nullptr) {
+				strcpy(settings_json_path, internal_path);
+			}
+		}
 		if (settings_json_file != nullptr) {
 			const char* default_json = "{\"client\":{\"server\":{\"host\":\"127.0.0.1\",\"port\":7777,\"password\":\"\"},\"settings\":{\"nick_name\":\"samp_player\",\"samp_version\":0,\"game_version\":0,\"new_interface\":false,\"system_keyboard\":false,\"timestamp\":false,\"fullscreen\":false,\"fast_connect\":false,\"voice_chat\":false,\"display_fps\":false,\"cleo_scripts\":false,\"aml_scripts\":false,\"monet_scripts\":false,\"modloader\":false,\"modify_files\":false,\"fps_limit\":60,\"chat_strings\":5,\"font_size\":26.0,\"chat_posx\":100,\"chat_posy\":10,\"chat_sizex\":400,\"chat_sizey\":150}}}";
 			fwrite(default_json, 1, strlen(default_json), settings_json_file);

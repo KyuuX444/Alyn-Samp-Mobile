@@ -121,6 +121,12 @@ void Patches::apply()
 	// RwCameraEndUpdate (for Idle hook)
 	Memory::nop(g_saSym->Abs<uintptr_t>(addr::RwCameraEndUpdate_patch), 2);
 
+	// Bypass ValidateVersion anti-tamper infinite loop
+	auto pValidateVersion = g_saSym->GetSymbol<uintptr_t>("_Z15ValidateVersionv");
+	if (pValidateVersion) {
+		Memory::ret(pValidateVersion);
+	}
+
 	if (Client::offlineMode()) {
 		return;
 	}

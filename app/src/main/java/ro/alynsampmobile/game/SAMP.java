@@ -132,7 +132,8 @@ public class SAMP extends GTASA {
         Log.i(TAG, "Game directory: " + gameDir);
 
         try {
-            initializeSAMP(ui, gameDir, getSharedPreferences("samp_settings", Context.MODE_PRIVATE).getBoolean("offline_mode", false));
+            getSharedPreferences("samp_settings", Context.MODE_PRIVATE).edit().putBoolean("offline_mode", false).apply();
+            initializeSAMP(ui, gameDir, false);
         } catch (UnsatisfiedLinkError e) {
             Log.e(TAG, Objects.requireNonNull(e.getMessage()));
         }

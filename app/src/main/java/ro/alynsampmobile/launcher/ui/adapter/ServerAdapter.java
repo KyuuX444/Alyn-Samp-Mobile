@@ -194,6 +194,8 @@ public class ServerAdapter extends RecyclerView.Adapter<ServerAdapter.ViewHolder
                 edit.putString("password", has_password ? password_input_text.getText().toString() : "");
                 edit.apply();
 
+                activity.getSharedPreferences("samp_settings", Context.MODE_PRIVATE).edit().putBoolean("offline_mode", false).apply();
+
                 Utils.saveSettings(activity);
 
                 // start game

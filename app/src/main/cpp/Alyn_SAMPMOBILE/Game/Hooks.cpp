@@ -251,6 +251,15 @@ DECL_HOOK(RwTexture *, CTxdStore_TxdStoreFindCB, const char *texture_name)
 	return nullptr;
 }
 
+DECL_HOOK(void, ValidateVersion)
+{
+	spdlog::info("ValidateVersion called, bypassing anti-tamper check");
+	auto pVersion = (char*)g_saSym->GetSymbol("version_name");
+	if (pVersion) {
+		strncpy(pVersion, "v2.10", 32);
+	}
+}
+
 DECL_HOOK(int, CGame_InitialiseRenderWare)
 {
 	spdlog::info("CGame_InitialiseRenderWare called, executing original...");
@@ -259,8 +268,8 @@ DECL_HOOK(int, CGame_InitialiseRenderWare)
 	spdlog::info("CGame_InitialiseRenderWare original returned: {}", result);
 
 	spdlog::info("Loading samp texture database...");
-	sa::TextureDatabaseRuntime::Load("samp", false, sa::DF_Default);
-	spdlog::info("samp texture database loaded");
+	auto sampTex = sa::TextureDatabaseRuntime::Load("samp", false, sa::DF_Default);
+	spdlog::info("samp texture database loaded: {}", (void*)sampTex);
 
 	Client::initializeUI();
 	spdlog::info("CGame_InitialiseRenderWare hook completed");
@@ -902,6 +911,7 @@ void Hooks::install()
 	HOOK("_ZN10CStreaming5Init2Ev", CStreaming_Init2);
 	HOOK("_ZN6CTimer14StartUserPauseEv", CTimer_StartUserPause);
 	HOOK("_ZN6CTimer12EndUserPauseEv", CTimer_EndUserPause);
+	HOOK("_Z15ValidateVersionv", ValidateVersion);
 	HOOK("_ZN5CGame20InitialiseRenderWareEv", CGame_InitialiseRenderWare);
 	HOOK("_ZN10CModelInfo11AddPedModelEi", CModelInfo_AddPedModel);
 	HOOK("_ZN10CModelInfo14AddAtomicModelEi", CModelInfo_AddAtomicModel);
