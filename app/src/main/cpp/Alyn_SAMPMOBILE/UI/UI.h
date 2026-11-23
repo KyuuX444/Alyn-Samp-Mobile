@@ -78,16 +78,16 @@ protected:
 	void drawList() override;
 
 private:
-	Keyboard* m_keyboard;
-	SplashScreen* m_splashScreen;
-	Chat* m_chat;
-	Spawn* m_spawn;
-	Dialog* m_dialog;
-	ButtonPanel* m_buttonPanel;
-	Scoreboard* m_scoreboard;
-	VoiceButton* m_voiceButton;
-	DebugLabels* m_debugLabels;
-	DeathWindow* m_deathWindow;
+	Keyboard* m_keyboard = nullptr;
+	SplashScreen* m_splashScreen = nullptr;
+	Chat* m_chat = nullptr;
+	Spawn* m_spawn = nullptr;
+	Dialog* m_dialog = nullptr;
+	ButtonPanel* m_buttonPanel = nullptr;
+	Scoreboard* m_scoreboard = nullptr;
+	VoiceButton* m_voiceButton = nullptr;
+	DebugLabels* m_debugLabels = nullptr;
+	DeathWindow* m_deathWindow = nullptr;
 
 public:
 	bool m_needClearMousePos = false;

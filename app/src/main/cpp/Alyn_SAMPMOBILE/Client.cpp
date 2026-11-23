@@ -397,9 +397,9 @@ void Client::initializeUI()
 		fonts_path.c_str());
 
 	pUI = new UI(ImVec2(sa::RsGlobal->screenWidth, sa::RsGlobal->screenHeight), fonts_path);
-	pUI->initialize();
+	bool ok = pUI->initialize();
 	pUI->performLayout();
-	spdlog::info("Client::initializeUI finished successfully");
+	spdlog::info("Client::initializeUI finished (success={})", ok);
 }
 
 jint JNI_OnLoad(JavaVM* vm, [[maybe_unused]] void* reserved)

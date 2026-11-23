@@ -40,7 +40,7 @@ DECL_HOOK(void, AND_TouchEvent, int type, int num, int posX, int posY)
 			break;
 		}
 
-		if (pUI->keyboard()->visible() || pUI->dialog()->visible())
+		if ((pUI->keyboard() && pUI->keyboard()->visible()) || (pUI->dialog() && pUI->dialog()->visible()))
 		{
 			AND_TouchEvent(1, 0, 0, 0);
 			return;

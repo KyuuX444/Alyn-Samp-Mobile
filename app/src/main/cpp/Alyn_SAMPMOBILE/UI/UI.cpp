@@ -12,7 +12,11 @@ extern NetGame* pNetGame;
 extern PlayerTags* pPlayerTags;
 
 UI::UI(const ImVec2& display_size, const std::string& fonts_path)
-		: Widget(), ImGuiWrapper(display_size, fonts_path)
+		: Widget(), ImGuiWrapper(display_size, fonts_path),
+		  m_keyboard(nullptr), m_splashScreen(nullptr), m_chat(nullptr),
+		  m_spawn(nullptr), m_dialog(nullptr), m_buttonPanel(nullptr),
+		  m_scoreboard(nullptr), m_voiceButton(nullptr), m_debugLabels(nullptr),
+		  m_deathWindow(nullptr)
 {
 	UISettings::Initialize(display_size);
 	this->setFixedSize(display_size);
@@ -122,7 +126,7 @@ void UI::drawList()
 
 	if (Settings::voice()) {
 		if (pNetGame) {
-			if (dialog()->visible() || scoreboard()->visible() || keyboard()->visible()) {
+			if ((dialog() && dialog()->visible()) || (scoreboard() && scoreboard()->visible()) || (keyboard() && keyboard()->visible())) {
 				SpeakerList::Hide();
 			}
 			else {
@@ -142,12 +146,12 @@ void UI::drawList()
 
 void UI::touchEvent(const ImVec2& pos, TouchType type)
 {
-	if (m_keyboard->visible() && m_keyboard->contains(pos)) {
+	if (m_keyboard && m_keyboard->visible() && m_keyboard->contains(pos)) {
 		m_keyboard->touchEvent(pos, type);
 		return;
 	}
 
-	if (m_dialog->visible() && m_dialog->contains(pos)) {
+	if (m_dialog && m_dialog->visible() && m_dialog->contains(pos)) {
 		m_dialog->touchEvent(pos, type);
 		return;
 	}

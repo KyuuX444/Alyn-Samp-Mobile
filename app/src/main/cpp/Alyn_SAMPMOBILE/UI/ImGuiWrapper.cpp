@@ -37,10 +37,20 @@ bool ImGuiWrapper::initialize()
 
 	m_font = loadFont("arial_bold.ttf", UISettings::fontSize() / 2);
 	if (m_font == nullptr) {
-		return false;
+		spdlog::warn("Primary font arial_bold.ttf failed, attempting fallback system fonts...");
+		m_font = loadFont("/system/fonts/Roboto-Bold.ttf", UISettings::fontSize() / 2);
+		if (!m_font) m_font = loadFont("/system/fonts/Roboto-Regular.ttf", UISettings::fontSize() / 2);
+		if (!m_font) m_font = loadFont("/system/fonts/DroidSans.ttf", UISettings::fontSize() / 2);
+		if (!m_font) {
+			spdlog::warn("System fonts not found, using ImGui built-in default font");
+			m_font = io.Fonts->AddFontDefault();
+		}
 	}
 
 	m_weapFont = loadFont("gtaweap3.ttf", UISettings::fontSize() / 2);
+	if (!m_weapFont) {
+		m_weapFont = m_font;
+	}
 
 	createFontTexture();
 
@@ -68,9 +78,15 @@ void ImGuiWrapper::shutdown()
 
 ImFont* ImGuiWrapper::loadFont(const std::string& font_name, float font_size)
 {
-	spdlog::info("ImGuiWrapper::loadFont: {} from {}", font_name.c_str(), m_fontsPath.c_str());
+	std::string fontPath = (!font_name.empty() && font_name.front() == '/') ? font_name : (m_fontsPath + font_name);
+	spdlog::info("ImGuiWrapper::loadFont: {}", fontPath.c_str());
 
-	std::string fontPath = m_fontsPath + font_name;
+	FILE* check = fopen(fontPath.c_str(), "rb");
+	if (!check) {
+		spdlog::warn("Font file not accessible: {}", fontPath.c_str());
+		return nullptr;
+	}
+	fclose(check);
 
 	ImGuiIO& io = ImGui::GetIO();
 	ImFontConfig fontCfg;
@@ -90,7 +106,7 @@ ImFont* ImGuiWrapper::loadFont(const std::string& font_name, float font_size)
 	ImFont* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), font_size, &fontCfg, ranges);
 
 	if (font == nullptr) {
-		spdlog::error("Failed to load font: {}", font_name.c_str());
+		spdlog::error("Failed to parse font: {}", fontPath.c_str());
 		return nullptr;
 	}
 
