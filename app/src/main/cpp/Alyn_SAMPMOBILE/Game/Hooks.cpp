@@ -135,6 +135,7 @@ DECL_HOOK(int, OS_FileSize, void* handle)
 
 const uintptr_t FAKE_HANDLE_TIMECYC = (uintptr_t)0xDEADC001;
 const uintptr_t FAKE_HANDLE_COLORCYCLE = (uintptr_t)0xDEADC002;
+const uintptr_t FAKE_HANDLE_POPCYCLE = (uintptr_t)0xDEADC004;
 
 static size_t s_timecyc_offset = 0;
 static size_t s_colorcycle_offset = 0;
@@ -195,6 +196,10 @@ DECL_HOOK(char*, CFileLoader_LoadLine, uintptr_t handle)
 		}
 		return line;
 	}
+	if (handle == FAKE_HANDLE_POPCYCLE) {
+		static char dummy_popcycle[] = "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n";
+		return dummy_popcycle;
+	}
 	if (!handle) {
 		return nullptr;
 	}
@@ -221,6 +226,15 @@ DECL_HOOK(bool, CFileMgr_ReadLine, uintptr_t handle, char *buffer, int maxSize)
 		}
 		return false;
 	}
+	if (handle == FAKE_HANDLE_POPCYCLE) {
+		static char dummy_popcycle[] = "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n";
+		if (buffer && maxSize > 0) {
+			strncpy(buffer, dummy_popcycle, maxSize - 1);
+			buffer[maxSize - 1] = '\0';
+			return true;
+		}
+		return false;
+	}
 	if (!handle) return false;
 	return CFileMgr_ReadLine(handle, buffer, maxSize);
 }
@@ -241,6 +255,10 @@ DECL_HOOK(uintptr_t, CFileMgr_OpenFile, const char* filename, const char* mode)
 				spdlog::info("Providing in-memory fallback handle for {}", filename);
 				return FAKE_HANDLE_COLORCYCLE;
 			}
+			if (str_contains_case_insensitive(filename, "popcycle")) {
+				spdlog::info("Providing in-memory fallback handle for {}", filename);
+				return FAKE_HANDLE_POPCYCLE;
+			}
 		}
 	}
 	return handle;
@@ -252,7 +270,7 @@ DECL_HOOK(uint32_t, CFileMgr_CloseFile, uintptr_t handle)
 DECL_HOOK(uint32_t, CFileMgr_CloseFile, uint32_t handle)
 #endif
 {
-	if (handle == FAKE_HANDLE_TIMECYC || handle == FAKE_HANDLE_COLORCYCLE) {
+	if (handle == FAKE_HANDLE_TIMECYC || handle == FAKE_HANDLE_COLORCYCLE || handle == FAKE_HANDLE_POPCYCLE) {
 		spdlog::info("CFileMgr::CloseFile: closed fallback handle 0x{:x}", handle);
 		return 0;
 	}
@@ -465,6 +483,34 @@ DECL_HOOK(int, OS_FileOpen, int a1, uintptr_t handle, char *name, int a2)
 		goto ret;
 	}
 
+	if (!strncasecmp(name, "DATA\\POPCYCLE.DAT", 17) || !strncasecmp(name, "data/popcycle.dat", 17) || !strcasecmp(name, "POPCYCLE.DAT"))
+	{
+		spdlog::info("OS_FileOpen: popcycle.dat requested ({})", name);
+		std::string extData = std::string(Client::gameDir()) + "data/popcycle.dat";
+		std::string extDataUpper = std::string(Client::gameDir()) + "data/POPCYCLE.DAT";
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/popcycle.dat";
+		std::string extSampUpper = std::string(Client::gameDir()) + "SAMP/POPCYCLE.DAT";
+
+		if (check_file_readable(extData)) {
+			sprintf(path, "data\\popcycle.dat");
+			name = path;
+			spdlog::info("Loading popcycle.dat from data\\popcycle.dat");
+		} else if (check_file_readable(extDataUpper)) {
+			sprintf(path, "data\\POPCYCLE.DAT");
+			name = path;
+			spdlog::info("Loading popcycle.dat from data\\POPCYCLE.DAT");
+		} else if (check_file_readable(extSamp)) {
+			sprintf(path, "SAMP\\popcycle.dat");
+			name = path;
+			spdlog::info("Loading popcycle.dat from SAMP\\popcycle.dat");
+		} else if (check_file_readable(extSampUpper)) {
+			sprintf(path, "SAMP\\POPCYCLE.DAT");
+			name = path;
+			spdlog::info("Loading popcycle.dat from SAMP\\POPCYCLE.DAT");
+		}
+		goto ret;
+	}
+
 	if (!strncmp(name, "data\\paths\\tracks2.dat", 22))
 	{
 		spdlog::info("Loading tracks2.dat...");
@@ -617,6 +663,31 @@ DECL_HOOK(int, CGame_InitialiseEssentialsAfterRW)
 		uint32_t* pQuit = reinterpret_cast<uint32_t*>(pRsGlobal + RSGLOBAL_QUIT_OFFSET);
 		if (*pQuit != 0) {
 			spdlog::warn("RsGlobal->quit was {}! Resetting to 0 to prevent game exit", *pQuit);
+			*pQuit = 0;
+		}
+	}
+
+	return 1;
+}
+
+DECL_HOOK(void, CPopCycle_Initialise)
+{
+	spdlog::info("CPopCycle::Initialise called, executing original...");
+	CPopCycle_Initialise();
+	spdlog::info("CPopCycle::Initialise finished successfully");
+}
+
+DECL_HOOK(int, CGame_InitialiseCoreDataAfterRW)
+{
+	spdlog::info("CGame_InitialiseCoreDataAfterRW called, executing original...");
+	int result = CGame_InitialiseCoreDataAfterRW();
+	spdlog::info("CGame_InitialiseCoreDataAfterRW original returned: {}", result);
+
+	uintptr_t pRsGlobal = (uintptr_t)g_saSym->GetSymbol<void*>("RsGlobal");
+	if (pRsGlobal) {
+		uint32_t* pQuit = reinterpret_cast<uint32_t*>(pRsGlobal + RSGLOBAL_QUIT_OFFSET);
+		if (*pQuit != 0) {
+			spdlog::warn("RsGlobal->quit was {} in CoreData! Resetting to 0 to prevent game exit", *pQuit);
 			*pQuit = 0;
 		}
 	}
@@ -1281,6 +1352,8 @@ void Hooks::install()
 	HOOK("_Z15ValidateVersionv", ValidateVersion);
 	HOOK("_ZN5CGame20InitialiseRenderWareEv", CGame_InitialiseRenderWare);
 	HOOK("_ZN5CGame27InitialiseEssentialsAfterRWEv", CGame_InitialiseEssentialsAfterRW);
+	HOOK("_ZN9CPopCycle10InitialiseEv", CPopCycle_Initialise);
+	HOOK("_ZN5CGame25InitialiseCoreDataAfterRWEv", CGame_InitialiseCoreDataAfterRW);
 	HOOK("_ZN10CModelInfo11AddPedModelEi", CModelInfo_AddPedModel);
 	HOOK("_ZN10CModelInfo14AddAtomicModelEi", CModelInfo_AddAtomicModel);
 	HOOK("_ZN6CPools10InitialiseEv", CPools_Initialise);
