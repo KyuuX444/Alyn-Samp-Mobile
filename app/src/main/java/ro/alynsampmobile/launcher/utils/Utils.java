@@ -69,44 +69,11 @@ public class Utils {
     public static GPUType GPU_TYPE = GPUType.NONE;
 
     public static boolean appStatus() {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Boolean> future = executor.submit(() -> {
-            try {
-                String out = getStringOutputByURL(update);
-                JSONObject json = new JSONObject(out);
-                return json.getBoolean("app_status");
-            } catch (IOException | JSONException e) {
-                System.out.println("Failed to get app status: " + e.getMessage());
-                return false;
-            }
-        });
-
-        boolean status = false;
-        try {
-            // Wait for the completion of the thread and get the result.
-            // You might want to specify a timeout to avoid waiting indefinitely.
-            status = future.get(); // You can add a timeout here if necessary
-        } catch (InterruptedException | ExecutionException e) {
-            System.out.println("2Failed to get app status: " + e.getMessage());
-            Thread.currentThread().interrupt(); // Restore interrupted status
-        } finally {
-            executor.shutdown();
-        }
-
-        System.out.println("App server status: " + status);
-        return status;
+        return true;
     }
 
     public static void showAppStatusWarning(Activity activity) {
-        System.out.println("showAppStatusWarning");
-
-        try {
-            new AlertDialog.Builder(activity).setTitle("Status:")
-                    .setMessage("App server is down, make sure you have the latest version of the client. If the problem persists, contact the developer.")
-                    .setPositiveButton("Ok", null).setCancelable(false).show();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // Warning removed
     }
 
     private static String xor_key = "alyn_samp_mobile";

@@ -175,25 +175,26 @@ public class SplashActivity extends AppCompatActivity implements GLSurfaceView.R
 
             AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this).setView(view);
             filesSelectionDialog = dialogBuilder.create();
+            filesSelectionDialog.setCancelable(false);
 
-            MaterialButton lite = view.findViewById(R.id.lite_button);
-            MaterialButton full = view.findViewById(R.id.full_button);
+            MaterialButton noButton = view.findViewById(R.id.no_button);
+            MaterialButton downloadButton = view.findViewById(R.id.download_button);
 
-            lite.setOnClickListener(v -> {
+            noButton.setOnClickListener(v -> {
                 getSharedPreferences("samp_settings", Context.MODE_PRIVATE).edit().putString("files_type", "lite").apply();
                 dismissDialog();
-                new Handler().postDelayed(() -> bindService(new Intent(this, UpdateService.class), mConnection, Context.BIND_AUTO_CREATE), 2500);
+                startMain();
             });
 
-            full.setOnClickListener(v -> {
-                getSharedPreferences("samp_settings", Context.MODE_PRIVATE).edit().putString("files_type", "full").apply();
+            downloadButton.setOnClickListener(v -> {
+                getSharedPreferences("samp_settings", Context.MODE_PRIVATE).edit().putString("files_type", "lite").apply();
                 dismissDialog();
-                new Handler().postDelayed(() -> bindService(new Intent(this, UpdateService.class), mConnection, Context.BIND_AUTO_CREATE), 2500);
+                new Handler().postDelayed(() -> bindService(new Intent(this, UpdateService.class), mConnection, Context.BIND_AUTO_CREATE), 500);
             });
 
             filesSelectionDialog.show();
         } else {
-            new Handler().postDelayed(() -> bindService(new Intent(this, UpdateService.class), mConnection, Context.BIND_AUTO_CREATE), 2500);
+            new Handler().postDelayed(() -> bindService(new Intent(this, UpdateService.class), mConnection, Context.BIND_AUTO_CREATE), 500);
         }
     }
 
@@ -306,42 +307,38 @@ public class SplashActivity extends AppCompatActivity implements GLSurfaceView.R
                 UpdateActivity.GameStatus gameStatus = UpdateActivity.GameStatus.valueOf(message.getData().getString("status", ""));
                 Log.i("SplashActivity", "gameStatus = " + gameStatus);
 
-                if (!Utils.appStatus()) {
-                    Utils.showAppStatusWarning(SplashActivity.this);
-                } else {
-                    if (gameStatus == UpdateActivity.GameStatus.GameUpdateRequired && !Utils.isTester(SplashActivity.this)) {
-                        try {
-                            new AlertDialog.Builder(SplashActivity.this)
-                                    .setTitle("Update:").setMessage("Game update required! Press 'Update' and download the latest version from the website.")
-                                    .setPositiveButton("Update", (dialog, which) -> {
-                                        /*Intent intent = new Intent(SplashActivity.this, UpdateActivity.class);
-                                        intent.putExtra("mode", UpdateActivity.UpdateMode.GameUpdate.name());
-                                        startActivity(intent);
-                                        finish();*/
-                                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.web));
-                                        startActivity(intent);
-                                    }).setCancelable(false).show();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    } else if (gameStatus == UpdateActivity.GameStatus.GameFilesUpdateRequired) {
-                        try {
-                            new AlertDialog.Builder(SplashActivity.this)
-                                    .setTitle("Update:").setMessage("Game files update required!")
-                                    .setPositiveButton("Update", (dialog, which) -> {
-                                        Intent intent = new Intent(SplashActivity.this, UpdateActivity.class);
-                                        intent.putExtra("mode", UpdateActivity.UpdateMode.GameUpdate.name());
-                                        startActivity(intent);
-                                        finish();
-                                    }).setNegativeButton("No", (dialog, which) -> {
-                                        startMain();
-                                    }).setCancelable(false).show();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        startMain();
+                if (gameStatus == UpdateActivity.GameStatus.GameUpdateRequired && !Utils.isTester(SplashActivity.this)) {
+                    try {
+                        new AlertDialog.Builder(SplashActivity.this)
+                                .setTitle("Update:").setMessage("Game update required! Press 'Update' and download the latest version from the website.")
+                                .setPositiveButton("Update", (dialog, which) -> {
+                                    /*Intent intent = new Intent(SplashActivity.this, UpdateActivity.class);
+                                    intent.putExtra("mode", UpdateActivity.UpdateMode.GameUpdate.name());
+                                    startActivity(intent);
+                                    finish();*/
+                                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.web));
+                                    startActivity(intent);
+                                }).setCancelable(false).show();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
+                } else if (gameStatus == UpdateActivity.GameStatus.GameFilesUpdateRequired) {
+                    try {
+                        new AlertDialog.Builder(SplashActivity.this)
+                                .setTitle("Update:").setMessage("Game files update required!")
+                                .setPositiveButton("Update", (dialog, which) -> {
+                                    Intent intent = new Intent(SplashActivity.this, UpdateActivity.class);
+                                    intent.putExtra("mode", UpdateActivity.UpdateMode.GameUpdate.name());
+                                    startActivity(intent);
+                                    finish();
+                                }).setNegativeButton("No", (dialog, which) -> {
+                                    startMain();
+                                }).setCancelable(false).show();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    startMain();
                 }
             }
         }
