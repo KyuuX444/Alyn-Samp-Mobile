@@ -250,11 +250,17 @@ DECL_HOOK(RwTexture *, CTxdStore_TxdStoreFindCB, const char *texture_name)
 
 DECL_HOOK(int, CGame_InitialiseRenderWare)
 {
-	spdlog::info("Initializing samp texture database...");
+	spdlog::info("CGame_InitialiseRenderWare called, executing original...");
 
 	int result = CGame_InitialiseRenderWare();
-	sa::TextureDatabaseRuntime::Load("samp", false, sa::DF_ETC);
+	spdlog::info("CGame_InitialiseRenderWare original returned: {}", result);
+
+	spdlog::info("Loading samp texture database...");
+	sa::TextureDatabaseRuntime::Load("samp", false, sa::DF_Default);
+	spdlog::info("samp texture database loaded");
+
 	Client::initializeUI();
+	spdlog::info("CGame_InitialiseRenderWare hook completed");
 	return result;
 }
 

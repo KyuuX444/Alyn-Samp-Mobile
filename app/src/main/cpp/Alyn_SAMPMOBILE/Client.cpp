@@ -271,6 +271,7 @@ void Client::process()
 
 void Client::initializeUI()
 {
+	spdlog::info("Client::initializeUI starting...");
 	if (Settings::voice()) {
 		for (const auto& deviceInitCallback : Render::deviceInitCallbacks) {
 			if (deviceInitCallback != nullptr) {
@@ -280,9 +281,15 @@ void Client::initializeUI()
 	}
 
 	std::string fonts_path = std::string(Client::gameDir()) + "fonts/";
+	spdlog::info("Client::initializeUI creating UI (screen={}x{}, fonts={})...",
+		sa::RsGlobal ? sa::RsGlobal->screenWidth : 0,
+		sa::RsGlobal ? sa::RsGlobal->screenHeight : 0,
+		fonts_path.c_str());
+
 	pUI = new UI(ImVec2(sa::RsGlobal->screenWidth, sa::RsGlobal->screenHeight), fonts_path);
 	pUI->initialize();
 	pUI->performLayout();
+	spdlog::info("Client::initializeUI finished successfully");
 }
 
 jint JNI_OnLoad(JavaVM* vm, [[maybe_unused]] void* reserved)
