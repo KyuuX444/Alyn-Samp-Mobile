@@ -31,12 +31,9 @@ import com.joom.paranoid.Obfuscate;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import ro.alynsampmobile.launcher.ui.dialog.RateUsDialog;
 import ro.alynsampmobile.launcher.ui.fragment.FavoriteServersFragment;
-import ro.alynsampmobile.launcher.ui.fragment.InformationPageFragment;
 import ro.alynsampmobile.launcher.ui.fragment.ServersPageFragment;
 import ro.alynsampmobile.launcher.ui.fragment.SettingsPageFragment;
-import ro.alynsampmobile.launcher.ui.fragment.SupportPageFragment;
 import ro.alynsampmobile.launcher.utils.Utils;
 
 @Obfuscate
@@ -70,20 +67,14 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
 
         ((MaterialTextView) findViewById(R.id.ahahaha)).setText(Utils.copyright);
 
-        final LinearLayout homeLayout = findViewById(R.id.homeLayout);
         final LinearLayout playLayout = findViewById(R.id.playLayout);
         final LinearLayout settingsLayout = findViewById(R.id.settingsLayout);
-        final LinearLayout supportLayout = findViewById(R.id.supportLayout);
 
-        final ImageView homeImage = findViewById(R.id.homeImage);
         final ImageView playImage = findViewById(R.id.playImage);
         final ImageView settingsImage = findViewById(R.id.settingsImage);
-        final ImageView supportImage = findViewById(R.id.supportImage);
 
-        final TextView homeTxt = findViewById(R.id.homeTxt);
         final TextView playTxt = findViewById(R.id.playTxt);
         final TextView settingsTxt = findViewById(R.id.settingsTxt);
-        final TextView supportTxt = findViewById(R.id.supportTxt);
 
         if (Utils.isTester(this)) {
             new AlertDialog.Builder(this).setTitle("Tester")
@@ -97,192 +88,61 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
                 .replace(R.id.fragmentContainer, FavoriteServersFragment.class, null)
                 .commit();
 
-        selectedTab = 2;
-        homeTxt.setVisibility(View.GONE);
+        selectedTab = 1;
         playTxt.setVisibility(View.VISIBLE);
         settingsTxt.setVisibility(View.GONE);
-        supportTxt.setVisibility(View.GONE);
 
-        homeImage.setImageResource(R.drawable.home_icon);
         playImage.setImageResource(R.drawable.play_selected_icon);
         settingsImage.setImageResource(R.drawable.settings_icon);
-        supportImage.setImageResource(R.drawable.support_icon);
 
-        homeLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
         playLayout.setBackgroundResource(R.drawable.round_back_navbg);
         settingsLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-        supportLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-
-        // show rating dialog
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean hasRated = prefs.getBoolean("hasRated", false);
-        if (!hasRated) {
-            RateUsDialog rateUsDialog = new RateUsDialog(MainActivity.this);
-            Objects.requireNonNull(rateUsDialog.getWindow()).setBackgroundDrawable(new ColorDrawable(ContextCompat.getColor(MainActivity.this, android.R.color.transparent)));
-            rateUsDialog.setCancelable(false);
-            rateUsDialog.show();
-        }
-
-        homeLayout.setOnClickListener(v -> {
-            // check if home is already selected or not.
-            if (selectedTab != 1) {
-                // set home fragment
-                getSupportFragmentManager().beginTransaction()
-                        .setReorderingAllowed(true)
-                        .replace(R.id.fragmentContainer, InformationPageFragment.class, null)
-                        .commit();
-
-                // unselect other tabs expect home tab
-                playTxt.setVisibility(View.GONE);
-                settingsTxt.setVisibility(View.GONE);
-                supportTxt.setVisibility(View.GONE);
-
-                playImage.setImageResource(R.drawable.play_icon);
-                settingsImage.setImageResource(R.drawable.settings_icon);
-                supportImage.setImageResource(R.drawable.support_icon);
-
-                playLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-                settingsLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-                supportLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-
-                // select home tab
-                homeTxt.setVisibility(View.VISIBLE);
-                homeImage.setImageResource(R.drawable.home_selected_icon);
-                homeLayout.setBackgroundResource(R.drawable.round_back_navbg);
-
-                // create animation
-                ScaleAnimation scaleAnimation = new ScaleAnimation(0.8f, 1.0f, 1f, 1f, Animation.RELATIVE_TO_SELF, 0.0f, Animation.RELATIVE_TO_SELF, 0.0f);
-                scaleAnimation.setDuration(200);
-                scaleAnimation.setFillAfter(true);
-                homeLayout.startAnimation(scaleAnimation);
-
-                // set 1st tab as selected tab
-                selectedTab = 1;
-            }
-        });
 
         playLayout.setOnClickListener(v -> {
-            // check if play tab is already selected or not.
-            if (selectedTab != 2) {
-                // set play fragment directly to favorite servers
+            if (selectedTab != 1) {
                 getSupportFragmentManager().beginTransaction()
                         .setReorderingAllowed(true)
                         .replace(R.id.fragmentContainer, FavoriteServersFragment.class, null)
                         .commit();
 
-                // unselect other tabs expect play tab
-                homeTxt.setVisibility(View.GONE);
                 settingsTxt.setVisibility(View.GONE);
-                supportTxt.setVisibility(View.GONE);
-
-                homeImage.setImageResource(R.drawable.home_icon);
                 settingsImage.setImageResource(R.drawable.settings_icon);
-                supportImage.setImageResource(R.drawable.support_icon);
-
-                homeLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
                 settingsLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-                supportLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
 
-                // select home tab
                 playTxt.setVisibility(View.VISIBLE);
                 playImage.setImageResource(R.drawable.play_selected_icon);
                 playLayout.setBackgroundResource(R.drawable.round_back_navbg);
 
-                // create animation
-                ScaleAnimation scaleAnimation = new ScaleAnimation(0.8f, 1.0f, 1f, 1f, Animation.RELATIVE_TO_SELF, 1.0f, Animation.RELATIVE_TO_SELF, 0.0f);
+                ScaleAnimation scaleAnimation = new ScaleAnimation(0.8f, 1.0f, 1f, 1f, Animation.RELATIVE_TO_SELF, 0.0f, Animation.RELATIVE_TO_SELF, 0.0f);
                 scaleAnimation.setDuration(200);
                 scaleAnimation.setFillAfter(true);
                 playLayout.startAnimation(scaleAnimation);
 
-                // set 2nd tab as selected tab
-                selectedTab = 2;
-
+                selectedTab = 1;
             }
         });
 
         settingsLayout.setOnClickListener(v -> {
-            // check if settings tab is already selected or not.
-            if (selectedTab != 3) {
-                // set settings fragment
+            if (selectedTab != 2) {
                 getSupportFragmentManager().beginTransaction()
                         .setReorderingAllowed(true)
                         .replace(R.id.fragmentContainer, SettingsPageFragment.class, null)
                         .commit();
 
-                // unselect other tabs expect settings tab
-                homeTxt.setVisibility(View.GONE);
                 playTxt.setVisibility(View.GONE);
-                supportTxt.setVisibility(View.GONE);
-
-                homeImage.setImageResource(R.drawable.home_icon);
                 playImage.setImageResource(R.drawable.play_icon);
-                supportImage.setImageResource(R.drawable.support_icon);
-
-                homeLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
                 playLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-                supportLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
 
-                // select home tab
                 settingsTxt.setVisibility(View.VISIBLE);
                 settingsImage.setImageResource(R.drawable.settings_selected_icon);
                 settingsLayout.setBackgroundResource(R.drawable.round_back_navbg);
 
-                // create animation
                 ScaleAnimation scaleAnimation = new ScaleAnimation(0.8f, 1.0f, 1f, 1f, Animation.RELATIVE_TO_SELF, 1.0f, Animation.RELATIVE_TO_SELF, 0.0f);
                 scaleAnimation.setDuration(200);
                 scaleAnimation.setFillAfter(true);
                 settingsLayout.startAnimation(scaleAnimation);
 
-                // set 3rd tab as selected tab
-                selectedTab = 3;
-
-                /*try {
-                    if (interstitialAd.isReady()) {
-                        interstitialAd.showAd();
-                    } else {
-                        Log.e("interstitialAd", "interstitialAd not ready!");
-                    }
-                } catch (Exception e) {
-                    Log.e("MainActivity", "Error showing interstitialAd: " + e.getMessage());
-                }*/
-            }
-        });
-
-        supportLayout.setOnClickListener(v -> {
-            // check if support tab is already selected or not.
-            if (selectedTab != 4) {
-                // set support fragment
-                getSupportFragmentManager().beginTransaction()
-                        .setReorderingAllowed(true)
-                        .replace(R.id.fragmentContainer, SupportPageFragment.class, null)
-                        .commit();
-
-                // unselect other tabs expect support tab
-                homeTxt.setVisibility(View.GONE);
-                playTxt.setVisibility(View.GONE);
-                settingsTxt.setVisibility(View.GONE);
-
-                homeImage.setImageResource(R.drawable.home_icon);
-                playImage.setImageResource(R.drawable.play_icon);
-                settingsImage.setImageResource(R.drawable.settings_icon);
-
-                homeLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-                playLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-                settingsLayout.setBackgroundColor(ContextCompat.getColor(MainActivity.this, android.R.color.transparent));
-
-                // select home tab
-                supportTxt.setVisibility(View.VISIBLE);
-                supportImage.setImageResource(R.drawable.support_selected_icon);
-                supportLayout.setBackgroundResource(R.drawable.round_back_navbg);
-
-                // create animation
-                ScaleAnimation scaleAnimation = new ScaleAnimation(0.8f, 1.0f, 1f, 1f, Animation.RELATIVE_TO_SELF, 1.0f, Animation.RELATIVE_TO_SELF, 0.0f);
-                scaleAnimation.setDuration(200);
-                scaleAnimation.setFillAfter(true);
-                supportLayout.startAnimation(scaleAnimation);
-
-                // set 4th tab as selected tab
-                selectedTab = 4;
+                selectedTab = 2;
             }
         });
     }
