@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Alyn SA-MP Mobile</string>
+    <string name="app_name">Alya Samp</string>
 
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="camera">123</string>
@@ -8,7 +8,7 @@
     <string name="settings">Settings</string>
     <string name="support">Support</string>
     <string name="home">Home</string>
-    <string name="alyn_sa_mp">Alyn SA-MP</string>
+    <string name="alyn_sa_mp">Alya Samp</string>
     <string name="mobile">Mobile</string>
     <string name="add_server">Add Server</string>
     <string name="host_port">HOST:PORT</string>

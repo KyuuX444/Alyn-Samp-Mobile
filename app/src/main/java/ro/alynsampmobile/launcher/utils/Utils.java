@@ -45,7 +45,7 @@ import ro.alynsampmobile.launcher.ui.fragment.SupportPageFragment;
 
 @Obfuscate
 public class Utils {
-    public static String copyright = "Copyright © Alyn_SAMPMOBILE";
+    public static String copyright = "copyright by kyzzz";
     public static String web = "https://alynsampmobile.pro/";
     public static String github = "https://github.com/alyn-dev";
     public static String update = web + "update.json";

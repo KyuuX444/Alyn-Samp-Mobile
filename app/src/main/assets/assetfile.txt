@@ -1,4 +1,4 @@
-123
+125
 assetfile.txt
 scache.txt
 scache_small.txt
@@ -8,11 +8,13 @@ audio/android/NAV_DOWN.ogg
 audio/android/NAV_UP.ogg
 data/360Default1280x720.cfg
 data/360Default960x720.cfg
+data/colorcycle.dat
 data/fonts.dat
 data/handling.cfg
 data/mainV1.scm
 data/scriptv1.img
 data/ShopUVs.dat
+data/timecyc.dat
 data/TouchDefaultPhone3x2.cfg
 data/TouchDefaultPhoneWidescreen.cfg
 data/TouchDefaultPhoneWidescreen2.cfg

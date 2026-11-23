@@ -11,6 +11,7 @@
 #include "Game/AudioStream.h"
 #include "Net/NetGame.h"
 #include "Voice/Plugin.h"
+#include "DefaultDataFiles.h"
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -44,7 +45,7 @@ void init_logger(const std::string& gameDir)
 		std::string path = gameDir + "logcat/client_" + dateTime + ".log";
 
 		// Create Android (logcat) sink
-		auto android_sink = std::make_shared<spdlog::sinks::android_sink_mt>("Alyn_SAMPMOBILE");
+		auto android_sink = std::make_shared<spdlog::sinks::android_sink_mt>("Alya Samp");
 
 		// Create file sink
 		auto max_size = 1048576 * 10; // Max file size 10MB
@@ -53,7 +54,7 @@ void init_logger(const std::string& gameDir)
 
 		// Combine both sinks
 		std::vector<spdlog::sink_ptr> sinks{android_sink, file_sink};
-		auto logger = std::make_shared<spdlog::logger>("Alyn_SAMPMOBILE", sinks.begin(), sinks.end());
+		auto logger = std::make_shared<spdlog::logger>("Alya Samp", sinks.begin(), sinks.end());
 
 		// Set log level and pattern
 		logger->set_level(spdlog::level::info);
@@ -65,7 +66,7 @@ void init_logger(const std::string& gameDir)
 		spdlog::flush_every(std::chrono::seconds(1));
 	}
 	catch (const spdlog::spdlog_ex& ex) {
-		__android_log_print(ANDROID_LOG_ERROR, "Alyn_SAMPMOBILE", "Log initialization failed: %s", ex.what());
+		__android_log_print(ANDROID_LOG_ERROR, "Alya Samp", "Log initialization failed: %s", ex.what());
 	}
 }
 
@@ -136,6 +137,63 @@ static void ensure_surface_dat(const std::string& gameDir)
 	}
 }
 
+static void ensure_data_files(const std::string& gameDir)
+{
+	ensure_surface_dat(gameDir);
+
+	// Ensure timecyc.dat
+	std::string timecycTargets[] = {
+		gameDir + "SAMP/timecyc.dat",
+		gameDir + "data/timecyc.dat",
+		"/data/data/ro.alynsampmobile.launcher/files/SAMP/timecyc.dat",
+		"/data/data/ro.alynsampmobile.launcher/files/data/timecyc.dat"
+	};
+	for (const auto& target : timecycTargets) {
+		FILE* check = fopen(target.c_str(), "rb");
+		if (check) {
+			fclose(check);
+			continue;
+		}
+		size_t lastSlash = target.find_last_of('/');
+		if (lastSlash != std::string::npos) {
+			std::string dir = target.substr(0, lastSlash);
+			mkdir(dir.c_str(), 0777);
+		}
+		FILE* out = fopen(target.c_str(), "wb");
+		if (out) {
+			fwrite(default_timecyc_dat, 1, default_timecyc_dat_len, out);
+			fclose(out);
+			spdlog::info("Created default timecyc.dat at: {}", target);
+		}
+	}
+
+	// Ensure colorcycle.dat
+	std::string colorcycleTargets[] = {
+		gameDir + "data/colorcycle.dat",
+		gameDir + "SAMP/colorcycle.dat",
+		"/data/data/ro.alynsampmobile.launcher/files/data/colorcycle.dat",
+		"/data/data/ro.alynsampmobile.launcher/files/SAMP/colorcycle.dat"
+	};
+	for (const auto& target : colorcycleTargets) {
+		FILE* check = fopen(target.c_str(), "rb");
+		if (check) {
+			fclose(check);
+			continue;
+		}
+		size_t lastSlash = target.find_last_of('/');
+		if (lastSlash != std::string::npos) {
+			std::string dir = target.substr(0, lastSlash);
+			mkdir(dir.c_str(), 0777);
+		}
+		FILE* out = fopen(target.c_str(), "wb");
+		if (out) {
+			fwrite(default_colorcycle_dat, 1, default_colorcycle_dat_len, out);
+			fclose(out);
+			spdlog::info("Created default colorcycle.dat at: {}", target);
+		}
+	}
+}
+
 void Client::initialize(const std::string& gameDir, bool offlineMode)
 {
 	// signal handler
@@ -150,9 +208,9 @@ void Client::initialize(const std::string& gameDir, bool offlineMode)
 	sigaction(SIGSEGV, &sig_action, nullptr);
 
 	init_logger(gameDir);
-	ensure_surface_dat(gameDir);
+	ensure_data_files(gameDir);
 
-	spdlog::info("Initializing Alyn_SAMPMOBILE client...");
+	spdlog::info("Initializing Alya Samp client...");
 
 	java_vm = g_vm;
 	game_dir = gameDir;
@@ -334,7 +392,7 @@ void Client::initializeUI()
 
 jint JNI_OnLoad(JavaVM* vm, [[maybe_unused]] void* reserved)
 {
-	__android_log_print(ANDROID_LOG_INFO, "Alyn_SAMPMOBILE", "Alyn_SAMPMOBILE library loaded! Build time: " __DATE__ " " __TIME__);
+	__android_log_print(ANDROID_LOG_INFO, "Alya Samp", "Alya Samp library loaded! Build time: " __DATE__ " " __TIME__);
 
 	JNIEnv* env;
 	if (vm->GetEnv((void**) &env, JNI_VERSION_1_6) != JNI_OK) {

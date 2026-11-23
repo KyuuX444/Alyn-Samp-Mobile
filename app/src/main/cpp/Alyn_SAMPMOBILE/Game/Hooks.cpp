@@ -175,6 +175,13 @@ DECL_HOOK(void, SurfaceInfos_c_LoadAdhesiveLimits, uintptr_t _this)
 	spdlog::info("SurfaceInfos_c::LoadAdhesiveLimits initialized successfully");
 }
 
+DECL_HOOK(void, CTimeCycle_Initialise, bool a1)
+{
+	spdlog::info("CTimeCycle::Initialise({}) called", a1);
+	CTimeCycle_Initialise(a1);
+	spdlog::info("CTimeCycle::Initialise finished successfully");
+}
+
 DECL_HOOK(int, OS_FileOpen, int a1, uintptr_t handle, char *name, int a2)
 {
 	char path[0xff] = {0};
@@ -243,43 +250,103 @@ DECL_HOOK(int, OS_FileOpen, int a1, uintptr_t handle, char *name, int a2)
 		goto ret;
 	}
 
-	if (!strncmp(name, "data\\script\\mainV1.scm", 22))
+	if (!strncasecmp(name, "data\\script\\mainV1.scm", 22) || !strncasecmp(name, "data/script/mainV1.scm", 22))
 	{
-		spdlog::info("Loading mainV1.scm..");
-		sprintf(path, "SAMP\\main.scm");
-		name = path;
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/main.scm";
+		if (check_file_readable(extSamp)) {
+			spdlog::info("Loading mainV1.scm -> SAMP\\main.scm..");
+			sprintf(path, "SAMP\\main.scm");
+			name = path;
+		}
 		goto ret;
 	}
 
-	if (!strncmp(name, "DATA\\SCRIPT\\SCRIPTV1.IMG", 24))
+	if (!strncasecmp(name, "DATA\\SCRIPT\\SCRIPTV1.IMG", 24) || !strncasecmp(name, "data/script/scriptv1.img", 24))
 	{
-		spdlog::info("Loading scriptV1.img..");
-		sprintf(path, "SAMP\\script.img");
-		name = path;
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/script.img";
+		if (check_file_readable(extSamp)) {
+			spdlog::info("Loading scriptV1.img -> SAMP\\script.img..");
+			sprintf(path, "SAMP\\script.img");
+			name = path;
+		}
 		goto ret;
 	}
 
-	if (!strncmp(name, "DATA\\GTA.DAT", 12))
+	if (!strncasecmp(name, "DATA\\GTA.DAT", 12) || !strncasecmp(name, "data/gta.dat", 12))
 	{
-		spdlog::info("Loading gta.dat..");
-		sprintf(path, "SAMP\\gta.dat");
-		name = path;
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/gta.dat";
+		if (check_file_readable(extSamp)) {
+			spdlog::info("Loading gta.dat -> SAMP\\gta.dat..");
+			sprintf(path, "SAMP\\gta.dat");
+			name = path;
+		}
 		goto ret;
 	}
 
-	if (!strncmp(name, "DATA\\PEDS.IDE", 13))
+	if (!strncasecmp(name, "DATA\\PEDS.IDE", 13) || !strncasecmp(name, "data/peds.ide", 13))
 	{
-		spdlog::info("Loading peds.ide..");
-		sprintf(path, "SAMP\\peds.ide");
-		name = path;
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/peds.ide";
+		if (check_file_readable(extSamp)) {
+			spdlog::info("Loading peds.ide -> SAMP\\peds.ide..");
+			sprintf(path, "SAMP\\peds.ide");
+			name = path;
+		}
 		goto ret;
 	}
 
-	if (!strncmp(name, "DATA\\TIMECYC.DAT", 16))
+	if (!strncasecmp(name, "DATA\\TIMECYC.DAT", 16) || !strncasecmp(name, "data/timecyc.dat", 16) || !strcasecmp(name, "TIMECYC.DAT"))
 	{
-		spdlog::info("Loading timecyc.dat..");
-		sprintf(path, "SAMP\\timecyc.dat");
-		name = path;
+		spdlog::info("OS_FileOpen: timecyc.dat requested ({})", name);
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/timecyc.dat";
+		std::string extSampUpper = std::string(Client::gameDir()) + "SAMP/TIMECYC.DAT";
+		std::string extData = std::string(Client::gameDir()) + "data/timecyc.dat";
+		std::string extDataUpper = std::string(Client::gameDir()) + "data/TIMECYC.DAT";
+		const char* intSamp = "/data/data/ro.alynsampmobile.launcher/files/SAMP/timecyc.dat";
+		const char* intData = "/data/data/ro.alynsampmobile.launcher/files/data/timecyc.dat";
+
+		if (check_file_readable(extSamp)) {
+			sprintf(path, "SAMP\\timecyc.dat");
+			name = path;
+		} else if (check_file_readable(extSampUpper)) {
+			sprintf(path, "SAMP\\TIMECYC.DAT");
+			name = path;
+		} else if (check_file_readable(extData)) {
+			sprintf(path, "data\\timecyc.dat");
+			name = path;
+		} else if (check_file_readable(extDataUpper)) {
+			sprintf(path, "data\\TIMECYC.DAT");
+			name = path;
+		} else if (check_file_readable(intSamp)) {
+			sprintf(path, "%s", intSamp);
+			name = path;
+		} else if (check_file_readable(intData)) {
+			sprintf(path, "%s", intData);
+			name = path;
+		}
+		goto ret;
+	}
+
+	if (!strncasecmp(name, "data\\colorcycle.dat", 19) || !strncasecmp(name, "data/colorcycle.dat", 19) || !strcasecmp(name, "colorcycle.dat"))
+	{
+		spdlog::info("OS_FileOpen: colorcycle.dat requested ({})", name);
+		std::string extData = std::string(Client::gameDir()) + "data/colorcycle.dat";
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/colorcycle.dat";
+		const char* intData = "/data/data/ro.alynsampmobile.launcher/files/data/colorcycle.dat";
+		const char* intSamp = "/data/data/ro.alynsampmobile.launcher/files/SAMP/colorcycle.dat";
+
+		if (check_file_readable(extData)) {
+			sprintf(path, "data\\colorcycle.dat");
+			name = path;
+		} else if (check_file_readable(extSamp)) {
+			sprintf(path, "SAMP\\colorcycle.dat");
+			name = path;
+		} else if (check_file_readable(intData)) {
+			sprintf(path, "%s", intData);
+			name = path;
+		} else if (check_file_readable(intSamp)) {
+			sprintf(path, "%s", intSamp);
+			name = path;
+		}
 		goto ret;
 	}
 
@@ -1061,6 +1128,7 @@ void Hooks::install()
 	HOOK("_ZN8CFileMgr8ReadLineEjPci", CFileMgr_ReadLine);
 #endif
 	HOOK("_ZN8CFileMgr8OpenFileEPKcS1_", CFileMgr_OpenFile);
+	HOOK("_ZN10CTimeCycle10InitialiseEb", CTimeCycle_Initialise);
 	HOOK("_ZN14SurfaceInfos_c18LoadAdhesiveLimitsEv", SurfaceInfos_c_LoadAdhesiveLimits);
 	HOOK("_ZN10CStreaming13InitImageListEv", CStreaming_InitImageList);
 	HOOK("_ZN10CStreaming5Init2Ev", CStreaming_Init2);
