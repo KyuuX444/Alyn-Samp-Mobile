@@ -74,6 +74,7 @@ public class SplashActivity extends AppCompatActivity implements GLSurfaceView.R
 
         getSharedPreferences("samp_settings", Context.MODE_PRIVATE).edit().putBoolean("offline_mode", false).apply();
 
+        getFilesDir();
         getExternalFilesDir(null);
         getObbDir();
         getExternalMediaDirs();
@@ -98,7 +99,7 @@ public class SplashActivity extends AppCompatActivity implements GLSurfaceView.R
         glSurfaceView = findViewById(R.id.surface);
         glSurfaceView.setRenderer(this);
 
-        Toast.makeText(this, "Alyn SA-MP Mobile v" + BuildConfig.VERSION_NAME, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Alya Samp v" + BuildConfig.VERSION_NAME, Toast.LENGTH_SHORT).show();
 
         if (EasyPermissions.hasPermissions(this, permissions)) {
             startApp();

@@ -98,6 +98,18 @@ void* startGame(void*)
 	pthread_exit(nullptr);
 }
 
+static bool mkdir_p(const std::string& path)
+{
+	size_t pos = 0;
+	while ((pos = path.find_first_of('/', pos + 1)) != std::string::npos) {
+		std::string sub = path.substr(0, pos);
+		if (!sub.empty()) {
+			mkdir(sub.c_str(), 0777);
+		}
+	}
+	return mkdir(path.c_str(), 0777) == 0 || errno == EEXIST;
+}
+
 static void ensure_surface_dat(const std::string& gameDir)
 {
 	static const char* default_surface_dat =
@@ -126,7 +138,7 @@ static void ensure_surface_dat(const std::string& gameDir)
 		size_t lastSlash = target.find_last_of('/');
 		if (lastSlash != std::string::npos) {
 			std::string dir = target.substr(0, lastSlash);
-			mkdir(dir.c_str(), 0777);
+			mkdir_p(dir);
 		}
 		FILE* out = fopen(target.c_str(), "wb");
 		if (out) {
@@ -157,7 +169,7 @@ static void ensure_data_files(const std::string& gameDir)
 		size_t lastSlash = target.find_last_of('/');
 		if (lastSlash != std::string::npos) {
 			std::string dir = target.substr(0, lastSlash);
-			mkdir(dir.c_str(), 0777);
+			mkdir_p(dir);
 		}
 		FILE* out = fopen(target.c_str(), "wb");
 		if (out) {
@@ -183,7 +195,7 @@ static void ensure_data_files(const std::string& gameDir)
 		size_t lastSlash = target.find_last_of('/');
 		if (lastSlash != std::string::npos) {
 			std::string dir = target.substr(0, lastSlash);
-			mkdir(dir.c_str(), 0777);
+			mkdir_p(dir);
 		}
 		FILE* out = fopen(target.c_str(), "wb");
 		if (out) {

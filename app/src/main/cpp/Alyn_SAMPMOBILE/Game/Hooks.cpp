@@ -1,5 +1,6 @@
 #include <sys/sysinfo.h>
 #include <EGL/egl.h>
+#include <algorithm>
 
 #include "Game.h"
 #include "../UI/UI.h"
@@ -9,6 +10,7 @@
 #include "ThreadOptimizer.h"
 #include "../Java/Java.h"
 #include "Pickups.h"
+#include "../DefaultDataFiles.h"
 
 extern UI *pUI;
 extern Game *pGame;
@@ -131,14 +133,95 @@ DECL_HOOK(int, OS_FileSize, void* handle)
 	return OS_FileSize(handle);
 }
 
+const uintptr_t FAKE_HANDLE_TIMECYC = (uintptr_t)0xDEADC001;
+const uintptr_t FAKE_HANDLE_COLORCYCLE = (uintptr_t)0xDEADC002;
+
+static size_t s_timecyc_offset = 0;
+static size_t s_colorcycle_offset = 0;
+static char s_timecyc_line_buf[1024];
+static char s_colorcycle_line_buf[1024];
+
+static bool str_contains_case_insensitive(const char* haystack, const char* needle)
+{
+	if (!haystack || !needle) return false;
+	std::string h = haystack;
+	std::string n = needle;
+	std::transform(h.begin(), h.end(), h.begin(), ::tolower);
+	std::transform(n.begin(), n.end(), n.begin(), ::tolower);
+	return h.find(n) != std::string::npos;
+}
+
+static char* get_next_line_from_buf(const unsigned char* data, size_t data_len, size_t& offset, char* out_buf, size_t out_max)
+{
+	while (offset < data_len) {
+		size_t line_start = offset;
+		while (offset < data_len && data[offset] != '\n' && data[offset] != '\r') {
+			offset++;
+		}
+		size_t line_len = offset - line_start;
+		while (offset < data_len && (data[offset] == '\n' || data[offset] == '\r')) {
+			offset++;
+		}
+		if (line_len == 0) continue;
+		if (line_len >= out_max) line_len = out_max - 1;
+		memcpy(out_buf, data + line_start, line_len);
+		out_buf[line_len] = '\0';
+
+		char* p = out_buf;
+		while (*p == ' ' || *p == '\t') p++;
+		if (*p == '/' && *(p + 1) == '/') continue;
+		if (*p == '\0') continue;
+
+		return p;
+	}
+	return nullptr;
+}
+
 DECL_HOOK(char*, CFileLoader_LoadLine, uintptr_t handle)
 {
-	if (!handle) return nullptr;
+	if (handle == FAKE_HANDLE_TIMECYC) {
+		char* line = get_next_line_from_buf(default_timecyc_dat, default_timecyc_dat_len, s_timecyc_offset, s_timecyc_line_buf, sizeof(s_timecyc_line_buf));
+		if (!line) {
+			static char dummy_tc[] = "0 0 0  0 0 0  0 0 0  0 0 0  0 0 0 0 0 0 0 0 0 0 0 0.0 0.0 0 0 0 0 0 0 0.0 0 0 0 0 0 0 0 0 0 0\n";
+			return dummy_tc;
+		}
+		return line;
+	}
+	if (handle == FAKE_HANDLE_COLORCYCLE) {
+		char* line = get_next_line_from_buf(default_colorcycle_dat, default_colorcycle_dat_len, s_colorcycle_offset, s_colorcycle_line_buf, sizeof(s_colorcycle_line_buf));
+		if (!line) {
+			static char dummy_cc[] = "0.0 0.0 0 0 0.0 0.0 0 0 0.0 0.0 0 0\n";
+			return dummy_cc;
+		}
+		return line;
+	}
+	if (!handle) {
+		static char safeguard[] = "// null_handle_safeguard\n";
+		return safeguard;
+	}
 	return CFileLoader_LoadLine(handle);
 }
 
 DECL_HOOK(bool, CFileMgr_ReadLine, uintptr_t handle, char *buffer, int maxSize)
 {
+	if (handle == FAKE_HANDLE_TIMECYC) {
+		char* line = get_next_line_from_buf(default_timecyc_dat, default_timecyc_dat_len, s_timecyc_offset, s_timecyc_line_buf, sizeof(s_timecyc_line_buf));
+		if (line && buffer && maxSize > 0) {
+			strncpy(buffer, line, maxSize - 1);
+			buffer[maxSize - 1] = '\0';
+			return true;
+		}
+		return false;
+	}
+	if (handle == FAKE_HANDLE_COLORCYCLE) {
+		char* line = get_next_line_from_buf(default_colorcycle_dat, default_colorcycle_dat_len, s_colorcycle_offset, s_colorcycle_line_buf, sizeof(s_colorcycle_line_buf));
+		if (line && buffer && maxSize > 0) {
+			strncpy(buffer, line, maxSize - 1);
+			buffer[maxSize - 1] = '\0';
+			return true;
+		}
+		return false;
+	}
 	if (!handle) return false;
 	return CFileMgr_ReadLine(handle, buffer, maxSize);
 }
@@ -148,8 +231,34 @@ DECL_HOOK(uintptr_t, CFileMgr_OpenFile, const char* filename, const char* mode)
 	uintptr_t handle = CFileMgr_OpenFile(filename, mode);
 	if (!handle) {
 		spdlog::warn("CFileMgr::OpenFile(\"{}\", \"{}\") failed (NULL handle)", filename ? filename : "null", mode ? mode : "null");
+		if (filename) {
+			if (str_contains_case_insensitive(filename, "TIMECYC")) {
+				s_timecyc_offset = 0;
+				spdlog::info("Providing in-memory fallback handle for {}", filename);
+				return FAKE_HANDLE_TIMECYC;
+			}
+			if (str_contains_case_insensitive(filename, "colorcycle")) {
+				s_colorcycle_offset = 0;
+				spdlog::info("Providing in-memory fallback handle for {}", filename);
+				return FAKE_HANDLE_COLORCYCLE;
+			}
+		}
 	}
 	return handle;
+}
+
+#ifdef __aarch64__
+DECL_HOOK(uint32_t, CFileMgr_CloseFile, uintptr_t handle)
+#else
+DECL_HOOK(uint32_t, CFileMgr_CloseFile, uint32_t handle)
+#endif
+{
+	if (handle == FAKE_HANDLE_TIMECYC || handle == FAKE_HANDLE_COLORCYCLE) {
+		spdlog::info("CFileMgr::CloseFile: closed fallback handle 0x{:x}", handle);
+		return 0;
+	}
+	if (!handle) return 0;
+	return CFileMgr_CloseFile(handle);
 }
 
 DECL_HOOK(void, SurfaceInfos_c_LoadAdhesiveLimits, uintptr_t _this)
@@ -301,27 +410,23 @@ DECL_HOOK(int, OS_FileOpen, int a1, uintptr_t handle, char *name, int a2)
 		std::string extSampUpper = std::string(Client::gameDir()) + "SAMP/TIMECYC.DAT";
 		std::string extData = std::string(Client::gameDir()) + "data/timecyc.dat";
 		std::string extDataUpper = std::string(Client::gameDir()) + "data/TIMECYC.DAT";
-		const char* intSamp = "/data/data/ro.alynsampmobile.launcher/files/SAMP/timecyc.dat";
-		const char* intData = "/data/data/ro.alynsampmobile.launcher/files/data/timecyc.dat";
 
 		if (check_file_readable(extSamp)) {
 			sprintf(path, "SAMP\\timecyc.dat");
 			name = path;
+			spdlog::info("Loading modpack timecyc.dat from SAMP\\timecyc.dat");
 		} else if (check_file_readable(extSampUpper)) {
 			sprintf(path, "SAMP\\TIMECYC.DAT");
 			name = path;
+			spdlog::info("Loading modpack timecyc.dat from SAMP\\TIMECYC.DAT");
 		} else if (check_file_readable(extData)) {
 			sprintf(path, "data\\timecyc.dat");
 			name = path;
+			spdlog::info("Loading modpack timecyc.dat from data\\timecyc.dat");
 		} else if (check_file_readable(extDataUpper)) {
 			sprintf(path, "data\\TIMECYC.DAT");
 			name = path;
-		} else if (check_file_readable(intSamp)) {
-			sprintf(path, "%s", intSamp);
-			name = path;
-		} else if (check_file_readable(intData)) {
-			sprintf(path, "%s", intData);
-			name = path;
+			spdlog::info("Loading modpack timecyc.dat from data\\TIMECYC.DAT");
 		}
 		goto ret;
 	}
@@ -330,22 +435,26 @@ DECL_HOOK(int, OS_FileOpen, int a1, uintptr_t handle, char *name, int a2)
 	{
 		spdlog::info("OS_FileOpen: colorcycle.dat requested ({})", name);
 		std::string extData = std::string(Client::gameDir()) + "data/colorcycle.dat";
+		std::string extDataUpper = std::string(Client::gameDir()) + "data/COLORCYCLE.DAT";
 		std::string extSamp = std::string(Client::gameDir()) + "SAMP/colorcycle.dat";
-		const char* intData = "/data/data/ro.alynsampmobile.launcher/files/data/colorcycle.dat";
-		const char* intSamp = "/data/data/ro.alynsampmobile.launcher/files/SAMP/colorcycle.dat";
+		std::string extSampUpper = std::string(Client::gameDir()) + "SAMP/COLORCYCLE.DAT";
 
 		if (check_file_readable(extData)) {
 			sprintf(path, "data\\colorcycle.dat");
 			name = path;
+			spdlog::info("Loading modpack colorcycle.dat from data\\colorcycle.dat");
+		} else if (check_file_readable(extDataUpper)) {
+			sprintf(path, "data\\COLORCYCLE.DAT");
+			name = path;
+			spdlog::info("Loading modpack colorcycle.dat from data\\COLORCYCLE.DAT");
 		} else if (check_file_readable(extSamp)) {
 			sprintf(path, "SAMP\\colorcycle.dat");
 			name = path;
-		} else if (check_file_readable(intData)) {
-			sprintf(path, "%s", intData);
+			spdlog::info("Loading modpack colorcycle.dat from SAMP\\colorcycle.dat");
+		} else if (check_file_readable(extSampUpper)) {
+			sprintf(path, "SAMP\\COLORCYCLE.DAT");
 			name = path;
-		} else if (check_file_readable(intSamp)) {
-			sprintf(path, "%s", intSamp);
-			name = path;
+			spdlog::info("Loading modpack colorcycle.dat from SAMP\\COLORCYCLE.DAT");
 		}
 		goto ret;
 	}
@@ -1128,6 +1237,11 @@ void Hooks::install()
 	HOOK("_ZN8CFileMgr8ReadLineEjPci", CFileMgr_ReadLine);
 #endif
 	HOOK("_ZN8CFileMgr8OpenFileEPKcS1_", CFileMgr_OpenFile);
+#ifdef __aarch64__
+	HOOK("_ZN8CFileMgr9CloseFileEy", CFileMgr_CloseFile);
+#else
+	HOOK("_ZN8CFileMgr9CloseFileEj", CFileMgr_CloseFile);
+#endif
 	HOOK("_ZN10CTimeCycle10InitialiseEb", CTimeCycle_Initialise);
 	HOOK("_ZN14SurfaceInfos_c18LoadAdhesiveLimitsEv", SurfaceInfos_c_LoadAdhesiveLimits);
 	HOOK("_ZN10CStreaming13InitImageListEv", CStreaming_InitImageList);
