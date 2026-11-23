@@ -11,6 +11,8 @@
 #include "Game/AudioStream.h"
 #include "Net/NetGame.h"
 #include "Voice/Plugin.h"
+#include <sys/stat.h>
+#include <sys/types.h>
 
 JavaVM* Client::java_vm = nullptr;
 std::string Client::game_dir;
@@ -95,6 +97,45 @@ void* startGame(void*)
 	pthread_exit(nullptr);
 }
 
+static void ensure_surface_dat(const std::string& gameDir)
+{
+	static const char* default_surface_dat =
+		"; Surface.dat\n"
+		"; Rubber  Hard  Road  Loose  Sand  Wet\n"
+		"Rubber   6.0\n"
+		"Hard     3.6   2.0\n"
+		"Road     4.5   3.0   6.0\n"
+		"Loose    3.2   3.5   2.0   1.0\n"
+		"Sand     2.0   4.0   2.0   1.0   1.0\n"
+		"Wet      2.4   2.0   1.0   1.0   1.0   0.5\n";
+
+	std::string targetPaths[] = {
+		gameDir + "SAMP/surface.dat",
+		gameDir + "data/surface.dat",
+		"/data/data/ro.alynsampmobile.launcher/files/SAMP/surface.dat",
+		"/data/data/ro.alynsampmobile.launcher/files/data/surface.dat"
+	};
+
+	for (const auto& target : targetPaths) {
+		FILE* check = fopen(target.c_str(), "rb");
+		if (check) {
+			fclose(check);
+			continue;
+		}
+		size_t lastSlash = target.find_last_of('/');
+		if (lastSlash != std::string::npos) {
+			std::string dir = target.substr(0, lastSlash);
+			mkdir(dir.c_str(), 0777);
+		}
+		FILE* out = fopen(target.c_str(), "wb");
+		if (out) {
+			fwrite(default_surface_dat, 1, strlen(default_surface_dat), out);
+			fclose(out);
+			spdlog::info("Created default surface.dat at: {}", target);
+		}
+	}
+}
+
 void Client::initialize(const std::string& gameDir, bool offlineMode)
 {
 	// signal handler
@@ -109,6 +150,7 @@ void Client::initialize(const std::string& gameDir, bool offlineMode)
 	sigaction(SIGSEGV, &sig_action, nullptr);
 
 	init_logger(gameDir);
+	ensure_surface_dat(gameDir);
 
 	spdlog::info("Initializing Alyn_SAMPMOBILE client...");
 

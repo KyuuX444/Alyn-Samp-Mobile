@@ -97,9 +97,151 @@ DECL_HOOK(void, DisplayScreen)
 	}*/
 }
 
+static bool check_file_readable(const std::string& path)
+{
+	FILE* f = fopen(path.c_str(), "rb");
+	if (f) {
+		fclose(f);
+		return true;
+	}
+	return false;
+}
+
+DECL_HOOK(int, OS_FileGetPosition, void* handle)
+{
+	if (!handle) return 0;
+	return OS_FileGetPosition(handle);
+}
+
+DECL_HOOK(int, OS_FileRead, void* handle, void* buffer, int size)
+{
+	if (!handle) return 0;
+	return OS_FileRead(handle, buffer, size);
+}
+
+DECL_HOOK(int, OS_FileSetPosition, void* handle, int pos)
+{
+	if (!handle) return 0;
+	return OS_FileSetPosition(handle, pos);
+}
+
+DECL_HOOK(int, OS_FileSize, void* handle)
+{
+	if (!handle) return 0;
+	return OS_FileSize(handle);
+}
+
+DECL_HOOK(char*, CFileLoader_LoadLine, uintptr_t handle)
+{
+	if (!handle) return nullptr;
+	return CFileLoader_LoadLine(handle);
+}
+
+DECL_HOOK(bool, CFileMgr_ReadLine, uintptr_t handle, char *buffer, int maxSize)
+{
+	if (!handle) return false;
+	return CFileMgr_ReadLine(handle, buffer, maxSize);
+}
+
+DECL_HOOK(uintptr_t, CFileMgr_OpenFile, const char* filename, const char* mode)
+{
+	uintptr_t handle = CFileMgr_OpenFile(filename, mode);
+	if (!handle) {
+		spdlog::warn("CFileMgr::OpenFile(\"{}\", \"{}\") failed (NULL handle)", filename ? filename : "null", mode ? mode : "null");
+	}
+	return handle;
+}
+
+DECL_HOOK(void, SurfaceInfos_c_LoadAdhesiveLimits, uintptr_t _this)
+{
+	// Pre-populate with standard GTA:SA default adhesive limits
+	float* matrix = reinterpret_cast<float*>(_this);
+	static const float defaultLimits[6][6] = {
+		{6.0f, 3.6f, 4.5f, 3.2f, 2.0f, 2.4f},
+		{3.6f, 2.0f, 3.0f, 3.5f, 4.0f, 2.0f},
+		{4.5f, 3.0f, 6.0f, 2.0f, 2.0f, 1.0f},
+		{3.2f, 3.5f, 2.0f, 1.0f, 1.0f, 1.0f},
+		{2.0f, 4.0f, 2.0f, 1.0f, 1.0f, 1.0f},
+		{2.4f, 2.0f, 1.0f, 1.0f, 1.0f, 0.5f}
+	};
+	if (matrix) {
+		for (int i = 0; i < 6; ++i) {
+			for (int j = 0; j < 6; ++j) {
+				matrix[i * 6 + j] = defaultLimits[i][j];
+			}
+		}
+	}
+	SurfaceInfos_c_LoadAdhesiveLimits(_this);
+	spdlog::info("SurfaceInfos_c::LoadAdhesiveLimits initialized successfully");
+}
+
 DECL_HOOK(int, OS_FileOpen, int a1, uintptr_t handle, char *name, int a2)
 {
 	char path[0xff] = {0};
+
+	if (!strncasecmp(name, "data\\surface.dat", 16) || !strncasecmp(name, "data/surface.dat", 16))
+	{
+		spdlog::info("OS_FileOpen: surface.dat requested");
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/surface.dat";
+		std::string extData = std::string(Client::gameDir()) + "data/surface.dat";
+		const char* intSamp = "/data/data/ro.alynsampmobile.launcher/files/SAMP/surface.dat";
+		const char* intData = "/data/data/ro.alynsampmobile.launcher/files/data/surface.dat";
+
+		if (check_file_readable(extSamp)) {
+			sprintf(path, "SAMP\\surface.dat");
+			name = path;
+		} else if (check_file_readable(extData)) {
+			sprintf(path, "data\\surface.dat");
+			name = path;
+		} else if (check_file_readable(intSamp)) {
+			sprintf(path, "%s", intSamp);
+			name = path;
+		} else if (check_file_readable(intData)) {
+			sprintf(path, "%s", intData);
+			name = path;
+		}
+		goto ret;
+	}
+
+	if (!strncasecmp(name, "data\\surfinfo.dat", 17) || !strncasecmp(name, "data/surfinfo.dat", 17))
+	{
+		spdlog::info("OS_FileOpen: surfinfo.dat requested");
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/surfinfo.dat";
+		std::string extData = std::string(Client::gameDir()) + "data/surfinfo.dat";
+		const char* intSamp = "/data/data/ro.alynsampmobile.launcher/files/SAMP/surfinfo.dat";
+
+		if (check_file_readable(extSamp)) {
+			sprintf(path, "SAMP\\surfinfo.dat");
+			name = path;
+		} else if (check_file_readable(extData)) {
+			sprintf(path, "data\\surfinfo.dat");
+			name = path;
+		} else if (check_file_readable(intSamp)) {
+			sprintf(path, "%s", intSamp);
+			name = path;
+		}
+		goto ret;
+	}
+
+	if (!strncasecmp(name, "data\\surfaud.dat", 16) || !strncasecmp(name, "data/surfaud.dat", 16))
+	{
+		spdlog::info("OS_FileOpen: surfaud.dat requested");
+		std::string extSamp = std::string(Client::gameDir()) + "SAMP/surfaud.dat";
+		std::string extData = std::string(Client::gameDir()) + "data/surfaud.dat";
+		const char* intSamp = "/data/data/ro.alynsampmobile.launcher/files/SAMP/surfaud.dat";
+
+		if (check_file_readable(extSamp)) {
+			sprintf(path, "SAMP\\surfaud.dat");
+			name = path;
+		} else if (check_file_readable(extData)) {
+			sprintf(path, "data\\surfaud.dat");
+			name = path;
+		} else if (check_file_readable(intSamp)) {
+			sprintf(path, "%s", intSamp);
+			name = path;
+		}
+		goto ret;
+	}
 
 	if (!strncmp(name, "data\\script\\mainV1.scm", 22))
 	{
@@ -907,6 +1049,19 @@ void Hooks::install()
 	curMS = *g_saSym->GetSymbol<unsigned int *>("curMS");
 
 	HOOK("_Z11OS_FileOpen14OSFileDataAreaPPvPKc16OSFileAccessType", OS_FileOpen);
+	HOOK("_Z18OS_FileGetPositionPv", OS_FileGetPosition);
+	HOOK("_Z11OS_FileReadPvS_i", OS_FileRead);
+	HOOK("_Z18OS_FileSetPositionPvi", OS_FileSetPosition);
+	HOOK("_Z11OS_FileSizePv", OS_FileSize);
+#ifdef __aarch64__
+	HOOK("_ZN11CFileLoader8LoadLineEy", CFileLoader_LoadLine);
+	HOOK("_ZN8CFileMgr8ReadLineEyPci", CFileMgr_ReadLine);
+#else
+	HOOK("_ZN11CFileLoader8LoadLineEj", CFileLoader_LoadLine);
+	HOOK("_ZN8CFileMgr8ReadLineEjPci", CFileMgr_ReadLine);
+#endif
+	HOOK("_ZN8CFileMgr8OpenFileEPKcS1_", CFileMgr_OpenFile);
+	HOOK("_ZN14SurfaceInfos_c18LoadAdhesiveLimitsEv", SurfaceInfos_c_LoadAdhesiveLimits);
 	HOOK("_ZN10CStreaming13InitImageListEv", CStreaming_InitImageList);
 	HOOK("_ZN10CStreaming5Init2Ev", CStreaming_Init2);
 	HOOK("_ZN6CTimer14StartUserPauseEv", CTimer_StartUserPause);

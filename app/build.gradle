@@ -11,8 +11,8 @@ android {
         applicationId "ro.alynsampmobile.launcher"
         minSdk 24
         targetSdk 35
-        versionCode 1706
-        versionName "1.0.4"
+        versionCode 1707
+        versionName "1.0.5"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
