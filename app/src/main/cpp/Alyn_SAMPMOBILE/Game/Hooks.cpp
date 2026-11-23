@@ -196,8 +196,7 @@ DECL_HOOK(char*, CFileLoader_LoadLine, uintptr_t handle)
 		return line;
 	}
 	if (!handle) {
-		static char safeguard[] = "// null_handle_safeguard\n";
-		return safeguard;
+		return nullptr;
 	}
 	return CFileLoader_LoadLine(handle);
 }
@@ -280,8 +279,15 @@ DECL_HOOK(void, SurfaceInfos_c_LoadAdhesiveLimits, uintptr_t _this)
 			}
 		}
 	}
-	SurfaceInfos_c_LoadAdhesiveLimits(_this);
-	spdlog::info("SurfaceInfos_c::LoadAdhesiveLimits initialized successfully");
+
+	std::string extSamp = std::string(Client::gameDir()) + "SAMP/surface.dat";
+	std::string extData = std::string(Client::gameDir()) + "data/surface.dat";
+	if (check_file_readable(extSamp) || check_file_readable(extData)) {
+		SurfaceInfos_c_LoadAdhesiveLimits(_this);
+		spdlog::info("SurfaceInfos_c::LoadAdhesiveLimits initialized from surface.dat");
+	} else {
+		spdlog::info("SurfaceInfos_c::LoadAdhesiveLimits initialized successfully with default matrix");
+	}
 }
 
 DECL_HOOK(void, CTimeCycle_Initialise, bool a1)
@@ -592,6 +598,30 @@ DECL_HOOK(int, CGame_InitialiseRenderWare)
 	Client::initializeUI();
 	spdlog::info("CGame_InitialiseRenderWare hook completed");
 	return result;
+}
+
+#ifdef __aarch64__
+static const size_t RSGLOBAL_QUIT_OFFSET = 0x14;
+#else
+static const size_t RSGLOBAL_QUIT_OFFSET = 0x10;
+#endif
+
+DECL_HOOK(int, CGame_InitialiseEssentialsAfterRW)
+{
+	spdlog::info("CGame_InitialiseEssentialsAfterRW called, executing original...");
+	int result = CGame_InitialiseEssentialsAfterRW();
+	spdlog::info("CGame_InitialiseEssentialsAfterRW original returned: {}", result);
+
+	uintptr_t pRsGlobal = (uintptr_t)g_saSym->GetSymbol<void*>("RsGlobal");
+	if (pRsGlobal) {
+		uint32_t* pQuit = reinterpret_cast<uint32_t*>(pRsGlobal + RSGLOBAL_QUIT_OFFSET);
+		if (*pQuit != 0) {
+			spdlog::warn("RsGlobal->quit was {}! Resetting to 0 to prevent game exit", *pQuit);
+			*pQuit = 0;
+		}
+	}
+
+	return 1;
 }
 
 struct CStreamingFile
@@ -1250,6 +1280,7 @@ void Hooks::install()
 	HOOK("_ZN6CTimer12EndUserPauseEv", CTimer_EndUserPause);
 	HOOK("_Z15ValidateVersionv", ValidateVersion);
 	HOOK("_ZN5CGame20InitialiseRenderWareEv", CGame_InitialiseRenderWare);
+	HOOK("_ZN5CGame27InitialiseEssentialsAfterRWEv", CGame_InitialiseEssentialsAfterRW);
 	HOOK("_ZN10CModelInfo11AddPedModelEi", CModelInfo_AddPedModel);
 	HOOK("_ZN10CModelInfo14AddAtomicModelEi", CModelInfo_AddAtomicModel);
 	HOOK("_ZN6CPools10InitialiseEv", CPools_Initialise);
