@@ -1,4 +1,4 @@
-name: Build Alyn SA-MP Mobile
+name: Build Alyn SA-MP Mobile (Release Only)
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build Alyn SA-MP Mobile APK
+    name: Build Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -40,15 +40,15 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build APK
-        run: ./gradlew assembleDebug assembleRelease --stacktrace
+      - name: Build APK (Release Only)
+        run: ./gradlew assembleRelease --stacktrace
 
-      - name: Upload APK Artifacts
+      - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: alyn-samp-mobile-apks
-          path: app/build/outputs/apk/**/*.apk
+          name: alyn-samp-mobile-release-apk
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
 
       - name: Upload Build Reports
