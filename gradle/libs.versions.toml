@@ -1,8 +1,6 @@
 [versions]
 applovinSdk = "13.1.0"
 easypermissions = "3.0.0"
-firebaseAnalytics = "22.2.0"
-firebaseCrashlyticsNdk = "19.4.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
@@ -22,8 +20,6 @@ glide = "4.16.0"
 [libraries]
 applovin-sdk = { module = "com.applovin:applovin-sdk", version.ref = "applovinSdk" }
 easypermissions = { module = "pub.devrel:easypermissions", version.ref = "easypermissions" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
-firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk", version.ref = "firebaseCrashlyticsNdk" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

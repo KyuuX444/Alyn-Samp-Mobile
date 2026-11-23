@@ -11,7 +11,6 @@
 #include "Game/AudioStream.h"
 #include "Net/NetGame.h"
 #include "Voice/Plugin.h"
-#include "Crashlytics.h"
 
 JavaVM* Client::java_vm = nullptr;
 std::string Client::game_dir;
@@ -125,11 +124,6 @@ void Client::initialize(const std::string& gameDir, bool offlineMode)
 
 	Settings::initialize();
 
-	if (firebase::crashlytics::Initialize()) {
-		spdlog::info("Crashlytics initialized");
-		firebase::crashlytics::SetUserId(Settings::nick());
-	}
-
 	if (Settings::sampversion() == 0) {
 		samp_version = "0.3.7";
 	}
@@ -148,10 +142,6 @@ void Client::initialize(const std::string& gameDir, bool offlineMode)
 	}
 
 	spdlog::info("libGTASA.so loaded at 0x{:X}", g_saSym->GetLibAddr());
-
-	char str[100];
-	sprintf(str, "0x%llx", g_saSym->GetLibAddr());
-	firebase::crashlytics::SetCustomKey("libGTASA.so", str);
 
 	sa::Initialize();
 	LoadBassLibrary();

@@ -41,5 +41,3 @@
 -dontwarn org.openjsse.**
 -dontwarn okhttp3.**
 -dontwarn okio.**
--dontwarn com.google.firebase.**
--dontwarn com.google.android.gms.**
