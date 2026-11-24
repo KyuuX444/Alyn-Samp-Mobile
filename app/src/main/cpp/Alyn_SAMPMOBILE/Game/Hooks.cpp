@@ -1,6 +1,8 @@
 #include <sys/sysinfo.h>
 #include <EGL/egl.h>
 #include <algorithm>
+#include <dirent.h>
+#include <sstream>
 
 #include "Game.h"
 #include "../UI/UI.h"
@@ -239,26 +241,155 @@ DECL_HOOK(bool, CFileMgr_ReadLine, uintptr_t handle, char *buffer, int maxSize)
 	return CFileMgr_ReadLine(handle, buffer, maxSize);
 }
 
+static bool file_readable(const std::string& path) {
+	return access(path.c_str(), R_OK) == 0;
+}
+
+static std::string resolve_case_insensitive_path(const std::string& baseDir, const std::string& relPath)
+{
+	std::string cleanRel = relPath;
+	for (char& c : cleanRel) {
+		if (c == '\\') c = '/';
+	}
+	while (!cleanRel.empty() && cleanRel.front() == '/') {
+		cleanRel.erase(cleanRel.begin());
+	}
+	if (cleanRel.empty()) return "";
+
+	std::string currentPath = baseDir;
+	if (!currentPath.empty() && currentPath.back() != '/') {
+		currentPath += '/';
+	}
+
+	std::string exact = currentPath + cleanRel;
+	if (file_readable(exact)) {
+		return exact;
+	}
+
+	std::stringstream ss(cleanRel);
+	std::string segment;
+	while (std::getline(ss, segment, '/')) {
+		if (segment.empty() || segment == ".") continue;
+
+		std::string tryPath = currentPath + segment;
+		struct stat st;
+		if (stat(tryPath.c_str(), &st) == 0) {
+			currentPath = tryPath + "/";
+			continue;
+		}
+
+		DIR* dir = opendir(currentPath.c_str());
+		if (!dir) {
+			return "";
+		}
+
+		struct dirent* entry;
+		bool found = false;
+		while ((entry = readdir(dir)) != nullptr) {
+			if (strcasecmp(entry->d_name, segment.c_str()) == 0) {
+				currentPath += entry->d_name;
+				currentPath += '/';
+				found = true;
+				break;
+			}
+		}
+		closedir(dir);
+
+		if (!found) {
+			return "";
+		}
+	}
+
+	if (!currentPath.empty() && currentPath.back() == '/') {
+		currentPath.pop_back();
+	}
+	if (file_readable(currentPath)) {
+		return currentPath;
+	}
+	return "";
+}
+
+static std::string find_real_file(const std::string& requestedPath)
+{
+	std::string clean = requestedPath;
+	for (char& c : clean) {
+		if (c == '\\') c = '/';
+	}
+
+	// Extract relative part if requestedPath contains game directory or /files/
+	std::string rel = clean;
+	const char* pFiles = strstr(clean.c_str(), "/files/");
+	if (pFiles) {
+		rel = pFiles + 7;
+	} else if (!clean.empty() && clean.front() == '/') {
+		if (clean.find(Client::gameDir()) == 0) {
+			rel = clean.substr(strlen(Client::gameDir()));
+		}
+	}
+	while (!rel.empty() && rel.front() == '/') {
+		rel.erase(rel.begin());
+	}
+
+	std::string nested1 = std::string(Client::gameDir()) + "Data Sem Mods Alyn - Mali/ro.alyn_sampmobile.game/files/";
+	std::string nested2 = std::string(Client::gameDir()) + "ro.alyn_sampmobile.game/files/";
+
+	const char* candidateBases[] = {
+		Client::gameDir(),
+		nested1.c_str(),
+		nested2.c_str(),
+		"/storage/emulated/0/Android/data/ro.alynsampmobile.launcher/files/Data Sem Mods Alyn - Mali/ro.alyn_sampmobile.game/files/",
+		"/storage/emulated/0/Android/data/ro.alynsampmobile.launcher/files/ro.alyn_sampmobile.game/files/",
+		"/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/",
+		"/storage/emulated/0/Android/data/Data Sem Mods Alyn - Mali/ro.alyn_sampmobile.game/files/",
+		"/storage/emulated/0/Android/data/com.rockstargames.gtasa/files/",
+		"/data/data/ro.alynsampmobile.launcher/files/"
+	};
+
+	for (const char* base : candidateBases) {
+		if (!base || !base[0]) continue;
+		std::string resolved = resolve_case_insensitive_path(base, rel);
+		if (!resolved.empty()) {
+			return resolved;
+		}
+
+		// Special case: decision files (PedEvent.txt, *.ped, *.grp) might be inside data/Decision/
+		if (rel.find("Decision") == std::string::npos && (rel.find(".ped") != std::string::npos || rel.find(".grp") != std::string::npos || rel == "PedEvent.txt")) {
+			std::string tryDec1 = resolve_case_insensitive_path(base, "data/Decision/" + rel);
+			if (!tryDec1.empty()) return tryDec1;
+			std::string tryDec2 = resolve_case_insensitive_path(base, "data/Decision/Allowed/" + rel);
+			if (!tryDec2.empty()) return tryDec2;
+		}
+	}
+
+	return "";
+}
+
 DECL_HOOK(uintptr_t, CFileMgr_OpenFile, const char* filename, const char* mode)
 {
 	uintptr_t handle = CFileMgr_OpenFile(filename, mode);
-	if (!handle) {
-		spdlog::warn("CFileMgr::OpenFile(\"{}\", \"{}\") failed (NULL handle)", filename ? filename : "null", mode ? mode : "null");
-		if (filename) {
-			if (str_contains_case_insensitive(filename, "TIMECYC")) {
-				s_timecyc_offset = 0;
-				spdlog::info("Providing in-memory fallback handle for {}", filename);
-				return FAKE_HANDLE_TIMECYC;
+	if (!handle && filename) {
+		std::string real = find_real_file(filename);
+		if (!real.empty()) {
+			handle = CFileMgr_OpenFile(real.c_str(), mode);
+			if (handle) {
+				spdlog::info("CFileMgr::OpenFile(\"{}\") resolved -> \"{}\"", filename, real);
+				return handle;
 			}
-			if (str_contains_case_insensitive(filename, "colorcycle")) {
-				s_colorcycle_offset = 0;
-				spdlog::info("Providing in-memory fallback handle for {}", filename);
-				return FAKE_HANDLE_COLORCYCLE;
-			}
-			if (str_contains_case_insensitive(filename, "popcycle")) {
-				spdlog::info("Providing in-memory fallback handle for {}", filename);
-				return FAKE_HANDLE_POPCYCLE;
-			}
+		}
+		spdlog::warn("CFileMgr::OpenFile(\"{}\", \"{}\") failed (NULL handle)", filename, mode ? mode : "null");
+		if (str_contains_case_insensitive(filename, "TIMECYC")) {
+			s_timecyc_offset = 0;
+			spdlog::info("Providing in-memory fallback handle for {}", filename);
+			return FAKE_HANDLE_TIMECYC;
+		}
+		if (str_contains_case_insensitive(filename, "colorcycle")) {
+			s_colorcycle_offset = 0;
+			spdlog::info("Providing in-memory fallback handle for {}", filename);
+			return FAKE_HANDLE_COLORCYCLE;
+		}
+		if (str_contains_case_insensitive(filename, "popcycle")) {
+			spdlog::info("Providing in-memory fallback handle for {}", filename);
+			return FAKE_HANDLE_POPCYCLE;
 		}
 	}
 	return handle;
@@ -528,27 +659,21 @@ DECL_HOOK(int, OS_FileOpen, int a1, uintptr_t handle, char *name, int a2)
 	}
 
 ret:
-	if (name && name[0] != '/') {
-		char norm[0xff];
-		strncpy(norm, name, sizeof(norm) - 1);
-		norm[sizeof(norm) - 1] = '\0';
-		for (char* p = norm; *p; ++p) {
-			if (*p == '\\') *p = '/';
-		}
-		std::string mainPath = std::string(Client::gameDir()) + norm;
-		struct stat st;
-		if (stat(mainPath.c_str(), &st) != 0) {
-			static const char* altDirs[] = {
-				"/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/",
-				"/storage/emulated/0/Android/data/com.rockstargames.gtasa/files/"
-			};
-			for (const char* alt : altDirs) {
-				std::string altPath = std::string(alt) + norm;
-				if (stat(altPath.c_str(), &st) == 0) {
-					snprintf(path, sizeof(path), "%s", altPath.c_str());
-					name = path;
-					break;
-				}
+	if (name) {
+		std::string real = find_real_file(name);
+		if (!real.empty()) {
+			snprintf(path, sizeof(path), "%s", real.c_str());
+			name = path;
+		} else {
+			static char normBuf[512];
+			strncpy(normBuf, name, sizeof(normBuf) - 1);
+			normBuf[sizeof(normBuf) - 1] = '\0';
+			bool modified = false;
+			for (char* p = normBuf; *p; ++p) {
+				if (*p == '\\') { *p = '/'; modified = true; }
+			}
+			if (modified) {
+				name = normBuf;
 			}
 		}
 	}
@@ -1192,6 +1317,24 @@ DECL_HOOK(void*, TextureDatabaseRuntime_GetTexture, const char* name)
 	return TextureDatabaseRuntime_GetTexture(name);
 }
 
+DECL_HOOK(void, OALService)
+{
+	auto pMutex = g_saSym->GetSymbol<pthread_mutex_t**>("trashMutex");
+	if (!pMutex || !*pMutex) {
+		return;
+	}
+	OALService();
+}
+
+DECL_HOOK(void, CAEFrontendAudioEntity_AddAudioEvent, uintptr_t _this, int eventId, float f1, float f2)
+{
+	auto ppVolumes = g_saSym->GetSymbol<void**>("_ZN14CAEAudioEntity20m_pAudioEventVolumesE");
+	if (!ppVolumes || !*ppVolumes) {
+		return;
+	}
+	CAEFrontendAudioEntity_AddAudioEvent(_this, eventId, f1, f2);
+}
+
 DECL_HOOK(void, CGame_Process)
 {
 	CGame_Process();
@@ -1475,6 +1618,8 @@ void Hooks::install()
 	HOOK("_ZN22TextureDatabaseRuntime10GetTextureEPKc", TextureDatabaseRuntime_GetTexture);
 	HOOK("_ZN10MobileMenu12InitForTitleEv", MobileMenu_InitForTitle);
 	HOOK("_ZN10MobileMenu4LoadEv", MobileMenu_Load);
+	HOOK("_Z10OALServicev", OALService);
+	HOOK("_ZN22CAEFrontendAudioEntity13AddAudioEventEiff", CAEFrontendAudioEntity_AddAudioEvent);
 	HOOK("_ZN10CPlayerPed29GetPlayerInfoForThisPlayerPedEv", GetPlayerInfoForThisPlayerPed);
 
 	if (!eglGetProcAddress("glAlphaFuncQCOM"))

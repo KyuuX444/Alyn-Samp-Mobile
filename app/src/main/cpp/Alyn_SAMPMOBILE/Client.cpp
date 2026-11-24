@@ -223,8 +223,15 @@ void Client::initialize(const std::string& gameDir, bool offlineMode)
 	struct stat st;
 	std::string texdbCheck = resolvedGameDir + "texdb";
 	if (stat(texdbCheck.c_str(), &st) != 0) {
+		std::string nested1 = resolvedGameDir + "Data Sem Mods Alyn - Mali/ro.alyn_sampmobile.game/files/";
+		std::string nested2 = resolvedGameDir + "ro.alyn_sampmobile.game/files/";
 		const char* candidatePaths[] = {
+			nested1.c_str(),
+			nested2.c_str(),
+			"/storage/emulated/0/Android/data/ro.alynsampmobile.launcher/files/Data Sem Mods Alyn - Mali/ro.alyn_sampmobile.game/files/",
+			"/storage/emulated/0/Android/data/ro.alynsampmobile.launcher/files/ro.alyn_sampmobile.game/files/",
 			"/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/",
+			"/storage/emulated/0/Android/data/Data Sem Mods Alyn - Mali/ro.alyn_sampmobile.game/files/",
 			"/storage/emulated/0/Android/data/com.rockstargames.gtasa/files/"
 		};
 		for (const char* cand : candidatePaths) {

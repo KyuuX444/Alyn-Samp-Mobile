@@ -129,7 +129,12 @@ public class SAMP extends GTASA {
         File defaultTexdb = new File(defaultFilesDir, "texdb");
         if (!defaultTexdb.exists()) {
             String[] candidatePaths = new String[] {
+                defaultFilesDir.getAbsolutePath() + "/Data Sem Mods Alyn - Mali/ro.alyn_sampmobile.game/files",
+                defaultFilesDir.getAbsolutePath() + "/ro.alyn_sampmobile.game/files",
+                "/storage/emulated/0/Android/data/ro.alynsampmobile.launcher/files/Data Sem Mods Alyn - Mali/ro.alyn_sampmobile.game/files",
+                "/storage/emulated/0/Android/data/ro.alynsampmobile.launcher/files/ro.alyn_sampmobile.game/files",
                 "/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files",
+                "/storage/emulated/0/Android/data/Data Sem Mods Alyn - Mali/ro.alyn_sampmobile.game/files",
                 "/storage/emulated/0/Android/data/com.rockstargames.gtasa/files"
             };
             for (String candidate : candidatePaths) {
